@@ -29,8 +29,8 @@ it('shows the option text on its digit key and dims options the question does no
   expect(renderAnswerKey(ANSWER_LAYOUT[2]!, opts, { other: 'dictating' })).toContain('>Stop<');
 });
 
-it('Send submits the options with →, a free-text answer with Enter (stopping dictation first)', () => {
-  expect(answerPresses('Send', 'off')).toEqual({ presses: ['ArrowRight'], other: 'off' });
+it('Send submits from the free-text field with Enter (stopping dictation first)', () => {
+  expect(answerPresses('Send', 'off')).toEqual({ presses: ['ArrowUp', 'Return'], other: 'off' });
   expect(answerPresses('Send', 'typing')).toEqual({ presses: ['Return'], other: 'off' });
   expect(answerPresses('Send', 'dictating').presses).toEqual(['Cmd+E', 700, 'Return']);
 });

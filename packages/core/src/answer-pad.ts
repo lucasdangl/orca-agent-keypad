@@ -2,7 +2,7 @@ import { layoutLabel } from './render.ts';
 
 /** A key press the answer pad sends to the app in front (Orca). `Cmd+E` is Orca's default dictation shortcut. */
 export type AnswerKeyCode =
-  'Escape' | 'ArrowUp' | 'ArrowDown' | 'ArrowRight' | 'Return' | '1' | '2' | '3' | '4' | 'Cmd+E';
+  'Escape' | 'ArrowUp' | 'ArrowDown' | 'Return' | '1' | '2' | '3' | '4' | 'Cmd+E';
 
 /**
  * What a pad key does: one key press, or `Other` (into the free-text field and dictate) / `Send` (submit), whose key
@@ -54,9 +54,10 @@ export function answerPresses(
       if (other === 'off') return { presses: ['ArrowUp', 'Cmd+E'], other: 'dictating' };
       return { presses: ['Cmd+E'], other: other === 'dictating' ? 'typing' : 'dictating' };
     case 'Send':
-      // Enter in the field submits its text; on the options → submits (a multi-select; Enter would only toggle).
+      // Enter in the free-text field submits the ticked options and the text, also with an empty field (Enter on an
+      // option only toggles it in a multi-select). From the options, ↑ goes into the field first (seen in Orca).
       if (other === 'dictating') return { presses: ['Cmd+E', 700, 'Return'], other: 'off' };
-      return { presses: [other === 'typing' ? 'Return' : 'ArrowRight'], other: 'off' };
+      return { presses: other === 'typing' ? ['Return'] : ['ArrowUp', 'Return'], other: 'off' };
     case 'Escape':
       return { presses: other === 'dictating' ? ['Cmd+E', 'Escape'] : ['Escape'], other: 'off' };
     default:

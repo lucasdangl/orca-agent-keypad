@@ -93,7 +93,7 @@ Pane-Tasten füllen sich von selbst: Jede freie Taste bekommt einen Agent-Chat o
 | 3 | 4 | Send |
 
 - **1–4** wählen eine Option, bei Mehrfachauswahl kreuzen sie an. Die Tasten zeigen den Text der Option. Optionen, die die Frage nicht hat, sind dunkel.
-- **Send** schickt die Auswahl ab (in Orca die Taste →). Nach „Other“ schickt Send den Text ab (Enter).
+- **Send** schickt die Auswahl ab: ↑ ins Freitextfeld, dann Enter. Nach „Other“ schickt Send den Text ab.
 - **Other 🎤** springt ins Freitextfeld der Frage und startet Orcas Diktat (Cmd+E). Die Taste wird dann zu einem roten **Stop**. Ein zweiter Druck beendet das Diktat. Send beendet es auch und schickt ab. Dafür muss in Orca unter **Settings → Voice** das Diktat eingeschaltet sein, mit dem Kürzel Cmd+E.
 
 Ist die Frage beantwortet, zeigen die Tasten wieder die Chats. Die Belegung richtet sich nach der Position der Taste (Slot 1 = oben links).
