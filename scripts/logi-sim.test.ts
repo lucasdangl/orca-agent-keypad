@@ -49,7 +49,8 @@ describe('logi daemon over the device protocol', () => {
   it('answers hello and draws every key as SVG, numbered by its slot', () => {
     expect(sim.received[0]).toEqual({ v: 1, type: 'ready', daemonVersion: DAEMON_VERSION });
     expect(sim.shown(SLOT1)).toMatchObject({ state: 'completed', number: '1' });
-    expect(sim.shown('logi:slot-2')).toMatchObject({ state: 'unmapped', number: '2' });
+    // Keys nobody mapped take the free agents (auto-fill); a key with no agent left stays empty.
+    expect(sim.shown('logi:slot-2')?.number).toBe('2');
     expect(sim.images.get('logi:status')).toMatch(/^<svg /);
     expect(sim.stderr.filter((l) => l.startsWith('NOT JSON'))).toEqual([]);
   });

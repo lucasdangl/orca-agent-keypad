@@ -259,8 +259,8 @@ export class DeckHost {
       new BridgedAdapter(orca, this.bridge.feed),
       store,
       this.raise,
-      // Off for 0.1.0: it did not fill keys on a second machine. Keys show pinned panes only.
-      { autofill: false },
+      // Empty keys take free agent panes and chats in a fixed order (see DeckController.autofill).
+      { autofill: true },
     );
     deck.diag = (m) => port.log('info', m);
     // Answers to the Orca panel's key clicks (`assignKey`, `unmapKey`) go back over the bridge.

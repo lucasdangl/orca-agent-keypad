@@ -82,9 +82,15 @@ afterEach(async () => {
 });
 
 describe('deck-host on a FakePort with fake Orca', () => {
-  it('draws the mapped pane on its key and leaves the others empty', () => {
+  it('draws the mapped pane on its key and auto-fills the others with the free agents', () => {
     expect(port.shown(SLOT)).toMatchObject({ state: 'completed', number: '1' });
-    expect(port.shown('fake:slot-2')).toMatchObject({ state: 'unmapped', number: '2' });
+    const others = ['fake:slot-2', 'fake:slot-3'].map((k) => port.shown(k));
+    expect(others.map((o) => o?.number)).toEqual(['2', '3']);
+    expect(others.every((o) => o?.state !== 'unmapped')).toBe(true);
+    // Every agent on exactly one key, the chat among them.
+    const labels = [port.shown(SLOT)?.label, ...others.map((o) => o?.label)];
+    expect(new Set(labels).size).toBe(3);
+    expect(labels).toContain('Fix the login');
   });
 
   it('a status push from plugin A colours the key without waiting for a poll', async () => {
