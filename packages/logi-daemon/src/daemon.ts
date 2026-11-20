@@ -2,7 +2,7 @@ import type { Readable, Writable } from 'node:stream';
 import { DeckHost, type DeckHostOptions } from '@orca-agent-deck/deck-host';
 import { LogiPort } from './logi-port.ts';
 
-export const DAEMON_VERSION = '0.1.0';
+export const DAEMON_VERSION = '0.4.0';
 
 export interface DaemonOptions {
   input: Readable;

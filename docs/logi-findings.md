@@ -197,6 +197,19 @@ Getestet am 2026-11-20 mit Orca 1.4.264 **[Test]**.
   - Fix: Der Feed ordnet nach `receivedAt` (Zustellzeit, die Uhr von Plugin A) und erst bei Gleichstand nach `stateStartedAt`. Den Upstream betrifft das genauso.
 - Auf diesem Rechner laufen **alle** Agents als Chats. Die Terminal-Panes sind einfache Shells. Ohne Chat-Unterstützung zeigt das Keypad deshalb keinen einzigen Agent.
 
+## 9. Paketieren und Installieren (Phase 5)
+
+Getestet am 2026-11-20 mit LogiPluginTool 6.4.2.3599 **[Test]**.
+
+- `LogiPluginTool pack logi-plugin/OrcaKeypadPlugin/bin/Release dist/OrcaKeypad-0.4.0.lplug4` packt `bin/` (DLL, `daemon/daemon.mjs`) und `metadata/` (YAML, Icon). Das Tool ergänzt `metadata/PackageHash.bin`. `verify` und `metadata` laufen fehlerfrei.
+- **Installieren:** `LogiPluginTool install …lplug4` legt das Plugin unter `~/Library/Application Support/Logi/LogiPluginService/Plugins/OrcaKeypad/` ab, und der Service lädt es sofort.
+  - Der Daemon startet aus `…/Plugins/OrcaKeypad/bin/daemon/daemon.mjs`, und Plugin A verbindet sich.
+  - Vorher muss der Dev-Link (`OrcaKeypadPlugin.link`) weg, beide heißen `OrcaKeypad`.
+- `LogiPluginTool uninstall OrcaKeypad` entfernt das Plugin wieder. Ein Debug-Build legt den Link neu an.
+- Ein Release-Build darf den Dev-Link nicht umbiegen. Der PostBuild-Schritt (Link schreiben und Reload) läuft deshalb nur im Debug-Build.
+- Plugin A: Ändert sich die Version im Manifest, verlangt Orca die Freigabe neu (`approval_required`), auch bei gleichen Rechten. Nach `orca plugin dev load` steht das Plugin bis dahin auf `pending`.
+- Doppelklick auf `.lplug4` nicht getestet.
+
 ## Folge für Phase 2
 
 - Device-Protokoll: `image` trägt `svg: string` (UTF-8, wie `renderKey` es liefert) statt `png: base64`.

@@ -12,19 +12,19 @@ name: OrcaKeypad
 displayName: Orca Agent Keypad
 
 # Short description of the plugin.
-description: Every keypad key shows an Orca agent pane (working, needs input, done); a tap jumps to it in Orca. Needs Orca 1.4.248+ and Node 22.6+.
+description: Every keypad key shows an Orca agent chat or pane (working, needs you, done); a tap opens it in Orca. Needs Orca 1.4.248+, Node 22.6+ and the Agent Keypad for Orca plugin in Orca.
 
 # Name of the plugin library file.
 pluginFileName: OrcaKeypadPlugin.dll
 
 # Plugin version.
-version: 0.1.0
+version: 0.4.0
 
 # Author of the plugin. The author can be a company or an individual developer.
-author: ldangl
+author: Lucas Dangl
 
 # Copyright information.
-copyright: Copyright © 2026 ldangl. All rights reserved.
+copyright: Copyright © 2026 Lucas Dangl; based on Agent Deck for Orca, Copyright © 2026 1am (MIT License)
 
 
 # ==================================================================================================
@@ -73,7 +73,7 @@ licenseUrl: https://opensource.org/licenses/MIT
 # URL of the support page where the users can send improvement suggestions and report bugs.
 # The URL is shown in Loupedeck Marketplace. The page can be for example a GitHub issues page.
 # NOTE: This setting is recommended when publishing the plugin in Loupedeck Marketplace.
-#supportPageUrl: https://github.com/myusername/myplugin/issues
+supportPageUrl: https://github.com/lucasdangl/orca-agent-keypad/issues
 
 # URL of the plugin homepage. The URL is shown in Loupedeck Marketplace.
-#homePageUrl: https://github.com/myusername/myplugin
+homePageUrl: https://github.com/lucasdangl/orca-agent-keypad

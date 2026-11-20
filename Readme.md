@@ -1,4 +1,15 @@
-# Agent Deck for Orca
+# Agent Keypad for Orca
+
+Dieser Fork von [Agent Deck for Orca](https://github.com/1am/orca-agent-deck) bringt Orcas Agents auf das **Logi MX Creative Keypad**. Jede Taste zeigt einen Agent-Chat oder ein Pane: blau, wenn der Agent arbeitet, gelb, wenn er auf dich wartet, und grün, wenn er fertig ist. Ein Tap holt ihn in Orca nach vorn.
+
+- Installation: [docs/install-logi.md](docs/install-logi.md)
+- Wie es gebaut ist: [PLAN.md](PLAN.md) und [docs/logi-findings.md](docs/logi-findings.md)
+
+Darunter steht unverändert die Beschreibung des Originals (Stream Deck).
+
+---
+
+## Agent Deck for Orca (upstream)
 
 **Running several agents at once is like...**
 

@@ -2,16 +2,21 @@ SD_DIR   := packages/streamdeck-plugin/pl.1am.orca-agent-deck.sdPlugin
 VERSION  := $(shell node -p "require('./package.json').version")
 SD_PKG   := dist/orca-agent-deck-$(VERSION).streamDeckPlugin
 ORCA_DIR := orca-plugin
-ORCA_PKG := dist/orca-agent-deck-orca-plugin-$(VERSION).zip
+ORCA_PKG := dist/orca-agent-keypad-orca-plugin-$(VERSION).zip
+LOGI_DIR := logi-plugin/OrcaKeypadPlugin
+LOGI_PKG := dist/OrcaKeypad-$(VERSION).lplug4
+# The .NET SDK and the Logi plugin tool (dotnet tool install -g LogiPluginTool), found on PATH or where they install.
+DOTNET   ?= $(shell command -v dotnet || echo /usr/local/share/dotnet/dotnet)
+LOGITOOL ?= $(shell command -v LogiPluginTool || echo $(HOME)/.dotnet/tools/LogiPluginTool)
 
-.PHONY: all build package package-sd package-orca test contract replay replay-a replay-b replay-e2e check clean
+.PHONY: all build package package-sd package-orca package-logi test contract replay replay-a replay-b replay-e2e check clean
 
 all: build
 
 # Build and check both plugins into dist/.
 build: package
 
-package: package-sd package-orca
+package: package-sd package-orca package-logi
 	cp scripts/collect-diagnostics.mjs dist/
 	@pnpm release:validate
 	@pnpm release:notes
@@ -59,10 +64,21 @@ package-sd: check
 	mv dist/pl.1am.orca-agent-deck.streamDeckPlugin $(SD_PKG)
 	@echo "Built $(SD_PKG) - double-click it on the target machine to install"
 
+# The Logi plugin for the MX Creative Keypad: the daemon bundle, a Release build of the C# plugin, then the
+# .lplug4 package, verified by the Logi plugin tool. Double-click the .lplug4 (or LogiPluginTool install) to install.
+package-logi:
+	pnpm logi:build
+	$(DOTNET) build $(LOGI_DIR)/src -c Release -warnaserror
+	mkdir -p dist
+	rm -f $(LOGI_PKG)
+	$(LOGITOOL) pack $(LOGI_DIR)/bin/Release $(LOGI_PKG)
+	$(LOGITOOL) verify $(LOGI_PKG)
+	@echo "Built $(LOGI_PKG)"
+
 package-orca:
 	mkdir -p dist
 	rm -f $(ORCA_PKG)
-	cd $(ORCA_DIR) && zip -qr ../$(ORCA_PKG) . -x '*.DS_Store'
+	cd $(ORCA_DIR) && zip -qr ../$(ORCA_PKG) . -x '*.DS_Store' -x '.orca/*'
 	@echo "Built $(ORCA_PKG)"
 
 clean:

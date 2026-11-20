@@ -3,25 +3,13 @@
   "execution": "trusted-worker",
   "id": "agent-keypad",
   "name": "Agent Keypad for Orca",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "description": "See at a glance which Orca agent needs you. Each agent chat or pane gets a key on the Logi MX Creative Keypad that shows its state and opens it when pressed.",
   "icon": "images/icon.png",
   "cover": {
     "path": "images/cover.png",
-    "alt": "A Stream Deck showing Orca agent panes as colored keys: working, done, idle and empty"
+    "alt": "An MX Creative Keypad drawn with Orca agent chats on its keys: working (blue), needs you (yellow), done (green), plus the Status and Attention keys"
   },
-  "screenshots": [
-    {
-      "path": "images/deck.png",
-      "alt": "A 5x3 Stream Deck grid of Orca pane keys with status icons",
-      "caption": "Know which agent is working, done or waiting for you, without switching windows"
-    },
-    {
-      "path": "images/desk.jpg",
-      "alt": "A Stream Deck in front of a laptop, its keys lit with agent status colors and one key counting 1 agent that needs you",
-      "caption": "Your agents, one glance away"
-    }
-  ],
   "engines": {
     "orca": ">=1.4.248"
   },

@@ -8,15 +8,15 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { format, resolveConfig } from 'prettier';
 
 const FILE = 'orca-catalog.json';
-const REPO = 'https://github.com/1am/orca-agent-deck.git';
+const REPO = 'https://github.com/lucasdangl/orca-agent-keypad.git';
 const RELEASE_LIMIT = 32;
 
 /** The catalog with `entry` first in the plugin's releases (a re-run for the same version replaces it). */
 export function withRelease(catalog, { pluginKey, entry, sourcePath }) {
   const doc = catalog ?? {
     catalogVersion: 2,
-    name: 'Agent Deck for Orca',
-    owner: '1am',
+    name: 'Agent Keypad for Orca',
+    owner: 'lucasdangl',
     plugins: [],
   };
   const source = {
@@ -31,7 +31,7 @@ export function withRelease(catalog, { pluginKey, entry, sourcePath }) {
       id: pluginKey,
       source,
       description:
-        'See at a glance which Orca agent needs you. Each pane gets a Stream Deck key that shows its state and focuses the pane when pressed.',
+        'See at a glance which Orca agent needs you. Each agent chat or pane gets a key on the Logi MX Creative Keypad that shows its state and opens it when pressed.',
       categories: [],
       releases: [],
     };

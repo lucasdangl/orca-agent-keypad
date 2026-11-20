@@ -138,7 +138,7 @@ Ordner `logi-plugin/OrcaKeypadPlugin/` (vom Logi Plugin Tool erzeugt).
 - [x] **Bild-Cache:** `ConcurrentDictionary<slotId, svg>`. Bei `image` aktualisieren und das Neuzeichnen für genau diese Taste auslösen. Ohne Bild ein neutrales Platzhalter-Icon zeigen.
 - [x] **Belegung melden:** Ein Slot gilt als belegt, sobald der Service ein 116-px-Bild für ihn anfragt (seit dem Laden). Welche Slots auf dem Gerät liegen, an den Daemon (`keys`) senden. Falls das SDK das nicht verrät: alle 9 Slots als belegt melden. Der Daemon rendert dann unbenutzte Slots, das ist harmlos.
 - [x] **Settings:** `saveSettings` über die Plugin-Settings-API des Logi SDK speichern und bei `hello` zurückgeben. `~/.orca-deck/mappings.json` bleibt die maßgebliche Kopie.
-- [ ] Icons und Metadaten: Plugin-Name „Orca Agent Keypad“, Icon im Recovio-Stil (keine Elgato- oder Orca-Logos).
+- [x] Icons und Metadaten: Plugin-Name „Orca Agent Keypad“, Icon im Recovio-Stil (keine Elgato- oder Orca-Logos), in Phase 5 erledigt.
 
 **Abnahme:** Auf dem echten Keypad zeigen die Tasten echte Orca-Panes. Ein Tap springt in den Pane, Orca kommt nach vorn. Ein Agent, der auf Input wartet, wird gelb oder orange.
 
@@ -156,7 +156,7 @@ Anlass: Beim Hardware-Test liefen alle Agents als Orca-Chats, nicht in Terminals
 - [x] `adapter-cli` (`focus`): Ein Chat wird immer über `terminal.reveal` (Runtime-Socket) fokussiert. Ohne Socket meldet `focus` sauber `ok: false` („Chat braucht die Runtime“), ohne CLI-Fallback.
 - [x] `fake-orca`: Chats simulieren (`addChat`). `worktree ps` meldet sie, `terminal.reveal` auf ihren `paneKey` setzt den Fokus.
 - [x] Tests: Unit-Tests im Adapter. `deck-host.test.ts` und `logi-sim.test.ts` je mit einem Chat: Status färbt die Taste, Tap ruft `terminal.reveal` auf.
-- [ ] Prüfen, ob Plugin A `agent.status.changed` auch für Chats bekommt. Wenn ja, kommt der Push sofort. Wenn nicht, greift der 2-s-Poll. Beides funktioniert, das Ergebnis kommt nach `docs/logi-findings.md`.
+- [x] Prüfen, ob Plugin A `agent.status.changed` auch für Chats bekommt: ja (Findings §8). Wenn ja, kommt der Push sofort. Wenn nicht, greift der 2-s-Poll. Beides funktioniert, das Ergebnis kommt nach `docs/logi-findings.md`.
 - [x] `replay-b` bleibt grün: Chats ändern nichts für Terminal-Panes. Die Stream-Deck-Version bekommt Chats automatisch mit.
 
 - [x] Hold-zum-Belegen bei Chats: Der Layout-Baum kennt keine Chats. `focusedPaneKey` fragt deshalb `session.tabs.list` (nur über den Runtime-Socket und nur, wenn der Worktree Chats hat).
@@ -180,10 +180,12 @@ Anlass: Beim Hardware-Test liefen alle Agents als Orca-Chats, nicht in Terminals
 
 ## Phase 5 – Paketieren, Installieren, Doku (½ Tag)
 
-- [ ] `make package-logi`: Daemon-Bundle bauen, ins Plugin-Verzeichnis kopieren, mit dem Logi Plugin Tool validieren und paketieren.
-- [ ] `make package-orca` wie gehabt, mit neuer ID.
-- [ ] `docs/install-logi.md`: Voraussetzungen (Options+ mit Plugin-Support, Orca ≥ 1.4.248, Node 22, `orca` CLI), Installation beider Plugins, Tasten in Options+ belegen, Fehlerbilder.
-- [ ] `NOTICE.md` und `LICENSE` beibehalten (MIT, Original-Autor nennen). Der Fork bleibt privat, außer du willst ihn veröffentlichen.
+- [x] `make package-logi`: Daemon-Bundle bauen, Release-Build des C#-Plugins, mit dem Logi Plugin Tool paketieren und prüfen (`dist/OrcaKeypad-<version>.lplug4`). Installation und Deinstallation mit dem Tool sind getestet (Findings §9).
+- [x] `make package-orca` wie gehabt, mit neuer ID. `.orca/` (Typings von `dev load`) bleibt draußen. Der Katalog `orca-catalog.json` gehört jetzt dem Fork, der Release-Eintrag kommt mit `pnpm catalog` nach dem Release-Commit.
+- [x] `docs/install-logi.md`: Voraussetzungen (Options+ mit Plugin-Support, Orca ≥ 1.4.248, Node 22, `orca` CLI), Installation beider Plugins, Tasten in Options+ belegen, Fehlerbilder.
+- [x] `NOTICE.md` und `LICENSE` beibehalten (MIT, Original-Autor nennen), um den Fork ergänzt. Der Fork ist öffentlich, GitHub-Forks öffentlicher Repos können nicht privat sein.
+- [x] Icon und Cover im Recovio-Stil (Mint, Ink, ein grüner Akzent), ohne Elgato- oder Orca-Logos. Die Stream-Deck-Fotos sind raus.
+- [x] Eine Version für alles, jetzt auch für das Logi-Plugin (`release.ts version 0.4.0`).
 
 ## Tests und Abnahme gesamt
 

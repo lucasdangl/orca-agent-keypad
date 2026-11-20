@@ -2,6 +2,26 @@
 
 All notable changes to this project are documented here. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning: [SemVer](https://semver.org/).
 
+## [0.4.0] - 2026-11-20
+
+First release of **Agent Keypad for Orca**, this fork for the Logi MX Creative Keypad.
+
+### Added
+
+- **Logi MX Creative Keypad.** A Logi Actions plugin (`logi-plugin/`, C#) with Pane, Status and Attention keys runs a Node daemon (`packages/logi-daemon`) over a line-based JSON protocol (`docs/device-protocol.md`). `make package-logi` builds and verifies `OrcaKeypad-<version>.lplug4`.
+- **Device-neutral deck host** (`packages/deck-host`) behind a `DevicePort`, shared by the Stream Deck and the keypad.
+- **Orca agent chats** as panes: listed from `worktree ps`, opened through `terminal.reveal`, and found in front through `session.tabs.list` for hold-to-map.
+- Install guide `docs/install-logi.md`.
+
+### Changed
+
+- **Plugin A is Agent Keypad for Orca** (`agent-keypad`): texts for the keypad and Logi Options+, a new icon and cover. Upstream's `agent-deck` keys still work.
+- One version for all parts, now including the Logi plugin (`release.ts version`).
+
+### Fixed
+
+- **Pushed statuses are ordered by delivery time.** Orca reports a turn's start again when an agent goes from waiting back to working; the bridge feed dropped that push as stale, and the key stayed on "needs you" for the rest of the turn.
+
 ## [0.3.1] - 2026-11-16
 
 ### Changed

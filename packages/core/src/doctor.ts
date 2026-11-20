@@ -22,7 +22,7 @@ export type CheckId =
  * Orca's plugin-install-link); the same link as docs/install.md.
  */
 export const ORCA_PLUGIN_INSTALL_URL =
-  'orca://plugins/1am.agent-deck?catalog=https://github.com/1am/orca-agent-deck.git';
+  'orca://plugins/lucasdangl.agent-keypad?catalog=https://github.com/lucasdangl/orca-agent-keypad.git';
 
 /** The Node major the plugin needs (the Elgato app's bundled Node, and what OpenDeck must find on the machine). */
 export const MIN_NODE_MAJOR = 20;

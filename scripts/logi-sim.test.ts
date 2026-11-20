@@ -7,6 +7,7 @@ import {
   setAgent,
   type BridgeSimulator,
 } from '../packages/fake-orca/src/index.ts';
+import { DAEMON_VERSION } from '../packages/logi-daemon/src/daemon.ts';
 import { DAEMON_SOURCE, FakeOrcaEnv, LogiSim } from './logi-sim-lib.ts';
 
 // Phase 2 acceptance: the Logi daemon as a child process, driven over the device protocol the way the C# plugin
@@ -46,7 +47,7 @@ afterEach(async () => {
 
 describe('logi daemon over the device protocol', () => {
   it('answers hello and draws every key as SVG, numbered by its slot', () => {
-    expect(sim.received[0]).toEqual({ v: 1, type: 'ready', daemonVersion: '0.1.0' });
+    expect(sim.received[0]).toEqual({ v: 1, type: 'ready', daemonVersion: DAEMON_VERSION });
     expect(sim.shown(SLOT1)).toMatchObject({ state: 'completed', number: '1' });
     expect(sim.shown('logi:slot-2')).toMatchObject({ state: 'unmapped', number: '2' });
     expect(sim.images.get('logi:status')).toMatch(/^<svg /);

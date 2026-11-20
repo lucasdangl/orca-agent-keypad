@@ -1,0 +1,110 @@
+# Agent Keypad for Orca: Installation auf dem MX Creative Keypad
+
+Jede Taste des Logi MX Creative Keypad zeigt einen Orca-Agent: einen Agent-Chat oder ein Terminal-Pane. Die Farbe zeigt den Zustand:
+
+| Farbe | Bedeutung |
+|---|---|
+| Blau | Der Agent arbeitet. |
+| Gelb | Der Agent wartet auf dich, mit einer Rückfrage oder einer Freigabe. |
+| Orange | Der Agent hat seinen Turn mit einer Frage beendet. |
+| Grün | Der Agent ist fertig. |
+
+Ein Tap holt genau diesen Chat oder dieses Pane in Orca nach vorn.
+
+Das System hat zwei Teile, und beide sind nötig:
+
+| Teil | Wo | Aufgabe |
+|---|---|---|
+| **Orca Agent Keypad** (`OrcaKeypad.lplug4`) | Logi Options+ | Zeichnet die Tasten, startet den Daemon (Node), fokussiert in Orca |
+| **Agent Keypad for Orca** (Plugin A) | Orca | Schickt Statuswechsel sofort, zeigt das Panel zum Belegen der Tasten |
+
+## Voraussetzungen
+
+- **macOS** mit **Logi Options+** und dem Logi Plugin Service **6.4 oder neuer**. Getestet ist 6.4.2.
+- **MX Creative Keypad**, per USB oder Bluetooth verbunden.
+- **Orca 1.4.248 oder neuer.**
+- **Node.js 22.6 oder neuer.** Der Plugin Service startet Plugins mit einem minimalen `PATH`. Das Plugin sucht Node deshalb selbst, in dieser Reihenfolge:
+  1. Plugin-Einstellung `nodePath` und Umgebungsvariable `ORCA_KEYPAD_NODE`. Beides ist für die Entwicklung gedacht, Options+ hat dafür keine Oberfläche.
+  2. `/opt/homebrew/bin/node` und `/usr/local/bin/node`. Das ist der einfachste Weg: `brew install node`.
+  3. Volta
+  4. nvm, die neueste Version zuerst
+  5. `command -v node` in deiner Login-Shell
+  6. das Node, das Logi mitliefert
+
+## 1. Orca-Plugin installieren
+
+In Orca unter **Settings → Plugins → Install from Git** diese Adresse eintragen:
+
+```
+https://github.com/lucasdangl/orca-agent-keypad
+```
+
+Oder diesen Link öffnen:
+
+```sh
+open 'orca://plugins/lucasdangl.agent-keypad?catalog=https://github.com/lucasdangl/orca-agent-keypad.git'
+```
+
+Orca fragt nach einer Freigabe. Das Plugin läuft als eigener Node-Prozess, liest den Agent-Status und darf Workspaces öffnen und Panes fokussieren. Danach erscheint unten in der Statusleiste **Agent Keypad**.
+
+Für die Entwicklung lädst du es direkt aus dem Repo:
+
+```sh
+orca plugin dev load orca-plugin    # liefert einen Fingerprint, dann:
+orca plugin dev load orca-plugin --approve <fingerprint>
+```
+
+## 2. Logi-Plugin installieren
+
+Das Paket `OrcaKeypad-<version>.lplug4` kommt aus dem Release oder aus `make package-logi`. Installieren:
+
+```sh
+LogiPluginTool install OrcaKeypad-0.4.0.lplug4
+```
+
+`LogiPluginTool` bekommst du mit `dotnet tool install --global LogiPluginTool`, es liegt dann in `~/.dotnet/tools`. Getestet ist die Installation mit dem Tool. Ein Doppelklick auf die `.lplug4`-Datei ist nicht getestet.
+
+Wenn das Plugin läuft, steht in `~/Library/Application Support/Logi/LogiPluginService/PluginData/OrcaKeypad/daemon.log` die Zeile `daemon ready`. Eine Zeile `A connected` zeigt, dass Plugin A verbunden ist.
+
+## 3. Tasten in Options+ anlegen
+
+In Options+ das Keypad öffnen. Unter **Orca Agent Keypad** gibt es:
+
+- **Orca Panes → Slot 1 … Slot 9**: Pane-Tasten. Die Nummer ist die Taste, die du im Orca-Panel belegst.
+- **Orca Status**: Verbindung zu Orca und Setup-Prüfung. Grün mit „OK“, wenn alles läuft. Drücken liest Orca sofort neu ein.
+- **Orca Attention**: Wie viele Agents auf dich warten. Drücken springt zum wartenden Agent, der am längsten wartet. Jeder weitere Druck springt zum nächsten.
+
+Options+ schaltet das Keypad-Profil um, wenn Orca vorn ist. Leg die Tasten deshalb ins Profil **Orca** und ins **Standardprofil**, sonst verschwinden sie, sobald eine andere App vorn ist.
+
+## 4. Tasten belegen
+
+1. Den Chat oder das Pane in Orca nach vorn holen.
+2. Die Taste etwa 1 s halten. Das Panel **Agent Keypad** öffnet sich rechts in Orca, mit den Details dieser Taste.
+3. Im Panel den Chat oder das Pane für die Taste wählen.
+
+Alternativ öffnet `Cmd+Option+K` oder ein Klick auf **Agent Keypad** in der Statusleiste das Panel. Belegungen bleiben über Neustarts erhalten. Sie liegen in `~/.orca-deck/mappings.json`.
+
+## Fehlerbilder
+
+| Was du siehst | Ursache | Abhilfe |
+|---|---|---|
+| Alle Tasten zeigen „Node 22.6+ not found“ | Kein passendes Node gefunden | `brew install node` (oder Node 22.6+ unter `/usr/local/bin`); das Plugin versucht es selbst wieder, nach spätestens 30 s |
+| Status-Taste: `!` „Install the Orca plugin“ | Plugin A fehlt oder ist deaktiviert | Schritt 1 |
+| Halten zeigt kurz „Map in Orca“, kein Panel | Plugin A fehlt, oder Orca läuft nicht | Schritt 1, Orca starten |
+| Status-Taste: „slow updates“ | Plugin A ist nicht verbunden, Status kommt nur über die Abfrage alle 2 s | Plugin A in Orca aktivieren; es verbindet sich beim nächsten Agent-Ereignis |
+| Status-Taste: `OFF` | Orca läuft nicht | Orca starten, die Tasten erholen sich selbst |
+| Kurzes rotes `!` nach einem Tap | Der Fokus ist fehlgeschlagen, z. B. weil der Chat geschlossen wurde | Taste neu belegen |
+| Chat fehlt in der Liste im Panel | In dem Chat lief noch nie ein Agent | Einmal einen Prompt schicken |
+
+Logs:
+
+- `~/Library/Application Support/Logi/LogiPluginService/PluginData/OrcaKeypad/daemon.log` für das Logi-Plugin und den Daemon.
+- `orca plugin logs lucasdangl.agent-keypad` für Plugin A, bei einem lokal geladenen Plugin `local.agent-keypad`.
+
+Keines der Logs enthält Inhalte aus Terminals oder Chats.
+
+## Deinstallieren
+
+1. In Orca **Agent Keypad: Uninstall** zweimal ausführen. Das entfernt `~/.orca-deck`.
+2. Das Plugin in Orca unter Settings → Plugins entfernen.
+3. Das Logi-Plugin entfernen: `LogiPluginTool uninstall OrcaKeypad`.
