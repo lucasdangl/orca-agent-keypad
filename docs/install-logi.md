@@ -98,13 +98,14 @@ Pane-Tasten füllen sich von selbst: Jede freie Taste bekommt einen Agent-Chat, 
 
 Ist die Frage beantwortet, zeigen die Tasten wieder die Chats. Die Belegung richtet sich nach der Position der Taste (Slot 1 = oben links).
 
+**Zurücksetzen:** Eine Pane-Taste etwa 1 s halten setzt sie zurück auf Automatisch. Sie zeigt kurz „Auto“ und nimmt dann den nächsten freien Chat. Das gilt auch für Tasten, die du von Hand belegt oder mit Unmap geleert hast.
+
 Von Hand belegen geht so:
 
-1. Den Chat oder das Pane in Orca nach vorn holen.
-2. Die Taste etwa 1 s halten. Das Panel **Agent Keypad** öffnet sich rechts in Orca, mit den Details dieser Taste.
-3. Im Panel den Chat oder das Pane für die Taste wählen.
+1. Das Panel **Agent Keypad** öffnen: mit `Cmd+Option+K` oder einem Klick auf **Agent Keypad** in der Statusleiste von Orca.
+2. Im Panel die Taste anklicken und den Chat oder das Pane für sie wählen.
 
-Alternativ öffnet `Cmd+Option+K` oder ein Klick auf **Agent Keypad** in der Statusleiste das Panel. Belegungen bleiben über Neustarts erhalten. Sie liegen in `~/.orca-deck/mappings.json`.
+Belegungen bleiben über Neustarts erhalten. Sie liegen in `~/.orca-deck/mappings.json`.
 
 ## Fehlerbilder
 
@@ -112,7 +113,6 @@ Alternativ öffnet `Cmd+Option+K` oder ein Klick auf **Agent Keypad** in der Sta
 |---|---|---|
 | Alle Tasten zeigen „Node 22.6+ not found“ | Kein passendes Node gefunden | `brew install node` (oder Node 22.6+ unter `/usr/local/bin`); das Plugin versucht es selbst wieder, nach spätestens 30 s |
 | Status-Taste: `!` „Install the Orca plugin“ | Plugin A fehlt oder ist deaktiviert | Schritt 1 |
-| Halten zeigt kurz „Map in Orca“, kein Panel | Plugin A fehlt, oder Orca läuft nicht | Schritt 1, Orca starten |
 | Status-Taste: „slow updates“ | Plugin A ist nicht verbunden, Status kommt nur über die Abfrage alle 2 s | Plugin A in Orca aktivieren; es verbindet sich beim nächsten Agent-Ereignis |
 | Status-Taste: `OFF` | Orca läuft nicht | Orca starten, die Tasten erholen sich selbst |
 | Eine Taste zeigt immer dasselbe Bild, reagiert aber auf Druck | Das Symbol der Taste wurde in Options+ geändert. Options+ zeigt dann nur noch dieses Bild, die Live-Anzeige ist aus | Taste in Options+ neu belegen und das Symbol nicht ändern |

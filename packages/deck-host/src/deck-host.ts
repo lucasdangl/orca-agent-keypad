@@ -50,6 +50,10 @@ export interface DeckHostOptions {
   bridge?: { discoveryPath?: string; ports?: readonly number[] };
   /** Hold delay (default 1 s). */
   holdMs?: number;
+  /** Auto-fill takes agent chats only, no terminals (the Logi keypad). */
+  autofillChatsOnly?: boolean;
+  /** Holding a Pane key sets it back to auto-fill instead of opening the Orca panel (the Logi keypad). */
+  holdResets?: boolean;
   /** Polling and repaint timers (default on; tests drive refreshes themselves). */
   timers?: boolean;
 }
@@ -122,7 +126,11 @@ export class DeckHost {
           (await this.askHold(key)) === 'hidden' ? 'hidden' : this.showPanel(key),
       },
       this.raise,
-      { ...(o.holdMs !== undefined ? { holdMs: o.holdMs } : {}), ...timers },
+      {
+        ...(o.holdMs !== undefined ? { holdMs: o.holdMs } : {}),
+        ...timers,
+        holdResets: o.holdResets === true,
+      },
     );
     this.status = new InfoKeys(
       'status',
@@ -259,8 +267,8 @@ export class DeckHost {
       new BridgedAdapter(orca, this.bridge.feed),
       store,
       this.raise,
-      // Empty keys take free agent chats in a fixed order (see DeckController.autofill); terminals only by hand.
-      { autofill: true, autofillChatsOnly: true },
+      // Empty keys take free agent panes in a fixed order (see DeckController.autofill); on the keypad chats only.
+      { autofill: true, autofillChatsOnly: this.o.autofillChatsOnly === true },
     );
     deck.diag = (m) => port.log('info', m);
     // Answers to the Orca panel's key clicks (`assignKey`, `unmapKey`) go back over the bridge.

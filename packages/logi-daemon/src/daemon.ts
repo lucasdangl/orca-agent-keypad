@@ -24,7 +24,8 @@ export async function runDaemon(o: DaemonOptions): Promise<{ why: string }> {
     daemonVersion: DAEMON_VERSION,
     ...(o.logLine ? { logLine: o.logLine } : {}),
   });
-  const host = new DeckHost(port, o.host);
+  // The keypad: auto-fill shows chats only, and holding a Pane key sets it back to auto-fill.
+  const host = new DeckHost(port, { autofillChatsOnly: true, holdResets: true, ...o.host });
   let gone: (why: string) => void = () => {};
   const parentGone = new Promise<string>((r) => (gone = r));
   // The bridge and the parent watch start with the first hello: before it the plugin has not said who it is.

@@ -88,10 +88,10 @@ describe('logi daemon over the device protocol', () => {
     expect(readFileSync(orca.openLog, 'utf8')).toContain('-b com.stablyai.orca');
   });
 
-  it('a hold asks plugin A about the panel instead of focusing', async () => {
-    const asked = a.waitFor((m) => m.type === 'holdKey', 5000);
+  it('a hold sets the key back to auto-fill instead of focusing (chats only: the terminal leaves it)', async () => {
+    expect(sim.shown(SLOT1)?.state).toBe('completed');
     await sim.hold(SLOT1, 1300);
-    expect(await asked).toMatchObject({ type: 'holdKey', key: 1 });
+    await sim.until(() => sim.shown(SLOT1)?.state === 'unmapped');
     expect(orca.s.focusedHandle).toBe(null);
   });
 

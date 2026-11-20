@@ -85,6 +85,8 @@ export class PaneKeys {
   /** Runs after every refresh (the Stream Deck Property Inspector re-sends its pane list from here). */
   onRefreshed: (() => Promise<void>) | null = null;
 
+  /** Holding a key sets it back to auto-fill instead of opening the Orca panel. */
+  private readonly holdResets: boolean;
   /** Brings Orca to the front (the same raise a focus press uses); a no-op where the OS does not allow it. */
   private readonly raise: () => Promise<unknown>;
 
@@ -93,8 +95,9 @@ export class PaneKeys {
     create: () => Promise<DeckController>,
     panel: PanelPicker = NO_PANEL,
     raise: () => Promise<unknown> = () => Promise.resolve(),
-    o: { holdMs?: number; timers?: boolean } = {},
+    o: { holdMs?: number; timers?: boolean; holdResets?: boolean } = {},
   ) {
+    this.holdResets = o.holdResets === true;
     this.port = port;
     this.create = create;
     this.panel = panel;
@@ -250,8 +253,16 @@ export class PaneKeys {
     void this.refresh();
   }
 
-  /** Hold fires: the Orca panel opens at this key's details (mapping happens there, never from the deck). */
+  /** Hold fires: back to auto-fill (`holdResets`), else the Orca panel opens at this key's details. */
   async onHold(slot: string): Promise<void> {
+    if (this.holdResets) {
+      // Back to auto-fill: the key forgets its pane (pinned or emptied by hand) and takes the next free chat.
+      (await this.controller()).configure(slot, { paneKey: null });
+      this.port.log('info', `hold slot=${shortSlot(slot)} -> reset to auto-fill`);
+      this.hints.set(slot, { text: 'Auto', until: Date.now() + 1200 });
+      await this.refresh();
+      return;
+    }
     const key = this.keyOfSlot(slot);
     const t0 = Date.now();
     const opened = key !== null && (await this.panel.open(key));

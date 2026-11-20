@@ -64,6 +64,7 @@ beforeEach(async () => {
     exec,
     raise,
     timers: false,
+    autofillChatsOnly: true,
   });
   await host.start();
   a = new BridgeSimulator(join(dir, 'bridge.json'));
