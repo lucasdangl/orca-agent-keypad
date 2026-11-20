@@ -2,5 +2,78 @@
   "catalogVersion": 2,
   "name": "Agent Keypad for Orca",
   "owner": "lucasdangl",
-  "plugins": []
+  "plugins": [
+    {
+      "id": "lucasdangl.agent-keypad",
+      "source": {
+        "kind": "git",
+        "url": "https://github.com/lucasdangl/orca-agent-keypad.git",
+        "ref": "main"
+      },
+      "description": "See at a glance which Orca agent needs you. Each agent chat or pane gets a key on the Logi MX Creative Keypad that shows its state and opens it when pressed.",
+      "categories": [],
+      "releases": [
+        {
+          "version": "0.4.0",
+          "commit": "448ea6788f7e6e6f8ca673b1761960c47020175b",
+          "contentHash": "16a992445f5b8ec905254703505120fc993c3ff438176528cfb13e037bb262ce",
+          "execution": "trusted-worker",
+          "minimumOrca": "1.4.248",
+          "name": "Agent Keypad for Orca",
+          "contributes": [
+            {
+              "kind": "panels",
+              "name": "Agent Keypad"
+            },
+            {
+              "kind": "commands",
+              "name": "Agent Keypad: Open panel"
+            },
+            {
+              "kind": "commands",
+              "name": "Agent Keypad: Show status"
+            },
+            {
+              "kind": "commands",
+              "name": "Agent Keypad: Record events"
+            },
+            {
+              "kind": "commands",
+              "name": "Agent Keypad: Uninstall"
+            },
+            {
+              "kind": "events",
+              "name": "agent.status.changed"
+            },
+            {
+              "kind": "keybindings",
+              "name": "Mod+Alt+K",
+              "detail": "deck.map"
+            },
+            {
+              "kind": "statusBarItems",
+              "name": "Agent Keypad"
+            }
+          ],
+          "capabilities": ["agent:read", "workspace:write"],
+          "images": {
+            "icon": {
+              "path": "orca-plugin/images/icon.png",
+              "alt": "Agent Keypad for Orca",
+              "sha256": "e6cfb1a6fd0b7a2258b5ab1146e22c63590fb1b0692d6b0e32fe197309742e60",
+              "width": 512,
+              "height": 512
+            },
+            "cover": {
+              "path": "orca-plugin/images/cover.png",
+              "alt": "An MX Creative Keypad drawn with Orca agent chats on its keys: working (blue), needs you (yellow), done (green), plus the Status and Attention keys",
+              "sha256": "c28de41afe7b849fbb7ade61c5bcf2fcf7f76b81295bcf11e13422936e4a8598",
+              "width": 1600,
+              "height": 1000
+            }
+          }
+        }
+      ]
+    }
+  ]
 }
