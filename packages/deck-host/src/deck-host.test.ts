@@ -89,7 +89,6 @@ describe('deck-host on a FakePort with fake Orca', () => {
     expect(port.shown('fake:slot-3')).toMatchObject({ state: 'unmapped', number: '3' });
   });
 
-
   it('a status push from plugin A colours the key without waiting for a poll', async () => {
     polled = structuredClone(s);
     await a.connect();
