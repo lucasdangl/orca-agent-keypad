@@ -10,13 +10,14 @@ import { format, resolveConfig } from 'prettier';
 const FILE = 'orca-catalog.json';
 const REPO = 'https://github.com/lucasdangl/orca-agent-keypad.git';
 const RELEASE_LIMIT = 32;
+const OWNER = 'lucasdangl';
 
 /** The catalog with `entry` first in the plugin's releases (a re-run for the same version replaces it). */
 export function withRelease(catalog, { pluginKey, entry, sourcePath }) {
   const doc = catalog ?? {
     catalogVersion: 2,
     name: 'Agent Keypad for Orca',
-    owner: 'lucasdangl',
+    owner: OWNER,
     plugins: [],
   };
   const source = {
@@ -57,12 +58,15 @@ if (isMain) {
   );
   if (!out.ok) throw new Error(`release-entry failed: ${JSON.stringify(out.error ?? out)}`);
   const current = existsSync(FILE) ? JSON.parse(readFileSync(FILE, 'utf8')) : null;
-  const json = JSON.stringify(withRelease(current, out.result), null, 2);
+  // release-entry names the plugin `local.<id>` (it knows no publisher); in the catalog it is the owner's.
+  const owner = current?.owner ?? OWNER;
+  const pluginKey = `${owner}.${out.result.pluginKey.split('.').slice(1).join('.')}`;
+  const json = JSON.stringify(withRelease(current, { ...out.result, pluginKey }), null, 2);
   // Formatted the way `pnpm lint` (prettier --check) expects, or CI fails on the catalog commit.
   const options = (await resolveConfig(FILE)) ?? {};
   writeFileSync(FILE, await format(json, { ...options, filepath: FILE }));
   execFileSync('orca', ['plugin', 'validate', FILE], { stdio: 'inherit' });
   console.log(
-    `${FILE}: ${out.result.pluginKey} ${out.result.entry.version} at ${out.result.entry.commit.slice(0, 7)}`,
+    `${FILE}: ${pluginKey} ${out.result.entry.version} at ${out.result.entry.commit.slice(0, 7)}`,
   );
 }
