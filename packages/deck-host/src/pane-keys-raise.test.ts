@@ -1,18 +1,13 @@
 import { describe, expect, it, vi } from 'vitest';
-
-vi.mock('@elgato/streamdeck', () => ({
-  default: { ui: {}, logger: { info: vi.fn() }, devices: [] },
-  action: () => (target: unknown) => target,
-  SingletonAction: class {},
-}));
-
-const { PaneSlot } = await import('./pane-slot.ts');
+import { FakePort } from './fake-port.ts';
+import { PaneKeys } from './pane-keys.ts';
 
 describe('deck gestures that change the Orca panel bring Orca to the front', () => {
   const make = (picker: { selecting: boolean; pick: boolean; open: boolean | 'hidden' }) => {
     const c = { press: vi.fn(async () => 'focused'), slotHost: () => null, refresh: vi.fn() };
     const raise = vi.fn(async () => {});
-    const slot = new PaneSlot(
+    const slot = new PaneKeys(
+      new FakePort(),
       async () => c as never,
       {
         selecting: () => picker.selecting,
@@ -20,12 +15,12 @@ describe('deck gestures that change the Orca panel bring Orca to the front', () 
         open: async () => picker.open,
       },
       raise,
+      { timers: false },
     );
     vi.spyOn(slot, 'keyOfSlot').mockReturnValue(3);
     const tap = async () => {
-      const a = { action: { id: 'slot-1', showAlert: vi.fn() } } as never;
-      slot.onKeyDown(a);
-      await slot.onKeyUp(a);
+      slot.keyDown('slot-1');
+      await slot.keyUp('slot-1');
     };
     return { c, raise, slot, tap };
   };
@@ -39,19 +34,19 @@ describe('deck gestures that change the Orca panel bring Orca to the front', () 
 
   it('a hold that opens the panel raises Orca once', async () => {
     const { raise, slot } = make({ selecting: false, pick: false, open: true });
-    await (slot as never as { onHold(s: string): Promise<void> }).onHold('slot-1');
+    await slot.onHold('slot-1');
     expect(raise).toHaveBeenCalledOnce();
   });
 
   it('a hold that hid the sidebar (panel already in view) does not raise Orca', async () => {
     const { raise, slot } = make({ selecting: false, pick: false, open: 'hidden' });
-    await (slot as never as { onHold(s: string): Promise<void> }).onHold('slot-1');
+    await slot.onHold('slot-1');
     expect(raise).not.toHaveBeenCalled();
   });
 
   it('a hold that could not open the panel does not raise', async () => {
     const { raise, slot } = make({ selecting: false, pick: false, open: false });
-    await (slot as never as { onHold(s: string): Promise<void> }).onHold('slot-1');
+    await slot.onHold('slot-1');
     expect(raise).not.toHaveBeenCalled();
   });
 

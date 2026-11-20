@@ -12,7 +12,8 @@
       "@orca-agent-deck/adapter-cli": ["../adapter-cli/src/index.ts"],
       "@orca-agent-deck/adapter-runtime": ["../adapter-runtime/src/index.ts"],
       "@orca-agent-deck/adapter-bridge": ["../adapter-bridge/src/index.ts"],
-      "@orca-agent-deck/window-raiser": ["../window-raiser/src/index.ts"]
+      "@orca-agent-deck/window-raiser": ["../window-raiser/src/index.ts"],
+      "@orca-agent-deck/deck-host": ["../deck-host/src/index.ts"]
     },
     "noEmit": true
   },
@@ -22,7 +23,8 @@
     "../adapter-cli/src",
     "../adapter-bridge/src",
     "../adapter-runtime/src",
-    "../window-raiser/src"
+    "../window-raiser/src",
+    "../deck-host/src"
   ],
   "exclude": ["../**/*.test.ts"]
 }

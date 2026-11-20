@@ -66,12 +66,12 @@ Die Ergebnisse kommen nach `docs/logi-findings.md`. Erst danach folgen die Phase
 
 ## Phase 0 – Setup und Spikes (½–1 Tag)
 
-- [ ] Fork von `1am/orca-agent-deck` nach `Recovio-Debt/orca-agent-keypad` (oder privat), Branch `logi`.
-- [ ] `nvm use` (Node ≥ 22.6, `.nvmrc`), `pnpm i`, `pnpm typecheck && pnpm test` grün **vor** jeder Änderung.
-- [ ] .NET SDK installieren (Version laut Logi-Doku), Logi Plugin Tool für macOS von <https://www.logitech.com/software/marketplace/developer.html>.
-- [ ] **Spike A:** Hello-World-Logi-Plugin `OrcaKeypad` mit einem parametrisierten Befehl (9 Slots). Jede Taste zeigt ein Bild mit Zähler, das jede Sekunde wechselt. Klärt Punkte 2–4.
-- [ ] **Spike B:** Das C#-Plugin startet `node -e "setInterval(()=>console.log(JSON.stringify({t:Date.now()})),1000)"` und loggt stdout. Klärt Punkt 5.
-- [ ] `docs/logi-findings.md` schreiben: Bildgröße, maximale Update-Rate, Events, Node-Pfad, Log-Ort.
+- [x] Fork von `1am/orca-agent-deck` nach `lucasdangl/orca-agent-keypad` (öffentlich, GitHub-Forks lassen sich nicht privat machen), Branch `logi`.
+- [x] `nvm use` (Node ≥ 22.6, `.nvmrc`), `pnpm i`, `pnpm typecheck && pnpm test` grün **vor** jeder Änderung.
+- [x] .NET SDK installieren (Version laut Logi-Doku), Logi Plugin Tool für macOS von <https://www.logitech.com/software/marketplace/developer.html>.
+- [x] **Spike A:** Hello-World-Logi-Plugin `OrcaKeypad` mit einem parametrisierten Befehl (9 Slots). Jede Taste zeigt ein Bild mit Zähler, das jede Sekunde wechselt. Klärt Punkte 2–4.
+- [x] **Spike B:** Das C#-Plugin startet `node -e "setInterval(()=>console.log(JSON.stringify({t:Date.now()})),1000)"` und loggt stdout. Klärt Punkt 5.
+- [x] `docs/logi-findings.md` schreiben: Bildgröße, maximale Update-Rate, Events, Node-Pfad, Log-Ort.
 
 **Abnahme:** Auf dem echten Keypad zählen 9 Tasten hoch. Das Plugin-Log zeigt die Zeilen des Node-Kindprozesses.
 
@@ -79,23 +79,26 @@ Die Ergebnisse kommen nach `docs/logi-findings.md`. Erst danach folgen die Phase
 
 Ziel: Die Logik aus `streamdeck-plugin` läuft ohne `@elgato/streamdeck`.
 
-- [ ] Neues Paket `packages/deck-host` mit der Schnittstelle `DevicePort`:
+- [x] Neues Paket `packages/deck-host` mit der Schnittstelle `DevicePort` (`packages/deck-host/src/port.ts`). Abweichungen vom ursprünglichen Entwurf, begründet durch Phase 0:
   ```ts
   interface DevicePort {
-    /** Tasten, die der Nutzer im Gerät einer unserer Aktionen zugewiesen hat. */
-    keys(): KeyBinding[];                  // { slotId, kind: 'pane'|'status'|'attention', index }
+    keys(): KeyBinding[];                 // { slotId, kind: 'pane'|'status'|'attention', device, coordinates? }
     onKeysChanged(cb: () => void): void;
-    setImage(slotId: string, png: Uint8Array | string /* svg */): Promise<void>;
-    onPress(cb: (slotId: string, gesture: 'tap'|'hold') => void): void;
-    device(): { model: string; cols: number; rows: number; connected: boolean };
-    settings: { load(): Promise<object>; save(o: object): Promise<void> };
+    setImage(slotId: string, svg: string): Promise<void>;   // SVG aus render.ts, Logi nutzt BitmapImage.FromSvg
+    showAlert(slotId: string): Promise<void>;
+    onKey(cb: (slotId: string, edge: 'down'|'up') => void): void;  // rohe Flanken, Tap/Hold entscheidet deck-host
+    devices(): DeviceInfo[];              // { id, model, cols, rows, connected }
+    settings: { load(): Promise<Record<string, unknown>>; save(o: Record<string, unknown>): void };
     log(level: 'info'|'warn', msg: string): void;
+    host(): DeckHostInfo;                 // für den Setup-Doctor
   }
   ```
-- [ ] Die Logik aus `plugin.ts`, `actions/pane-slot.ts`, `actions/status.ts`, `actions/attention.ts` und `actions/info-key.ts` gegen `DevicePort` umschreiben und nach `packages/deck-host/src` verschieben. `SingletonAction`, `WillAppearEvent` und `streamDeck.logger` werden durch den Port ersetzt. `bridge.ts`, `mapping-file.ts` und `host-watch.ts` ziehen mit um.
-- [ ] Die Slot-ID ist nicht mehr der Elgato-Action-Context, sondern stabil `logi:slot-<n>`. `MappingStore.locate` (Zuordnung nach Position) bleibt für den Wechsel zwischen Hosts erhalten.
-- [ ] Optional, aber empfohlen: `streamdeck-plugin` auf `deck-host` mit einem `ElgatoPort` umstellen, damit die bestehenden Tests (`pane-slot-raise.test.ts`, `replay-b`) die Logik weiter absichern. Wenn das zu aufwendig ist, die Tests nach `deck-host` portieren und einen `FakePort` nutzen.
-- [ ] Der Property Inspector (`ui/*.html`, `pi*.ts`) fällt weg. Konfiguriert wird über das Orca-Panel (Plugin A), das es schon gibt.
+  - **Flanken statt Gesten:** Das Keypad liefert `Press`/`Release` (Phase 0). deck-host wertet sie mit demselben `HoldGestures` (1 s) aus wie bisher, damit Tap/Hold auf allen Geräten gleich wirkt.
+  - **`coordinates` statt `index`:** liefert Tastennummer und `MappingStore.locate` in einem; Logi meldet Slot n als Spalte `(n-1)%3`, Zeile `(n-1)/3`.
+- [x] Die Logik aus `plugin.ts`, `actions/pane-slot.ts`, `actions/status.ts`, `actions/attention.ts` und `actions/info-key.ts` gegen `DevicePort` umschreiben und nach `packages/deck-host/src` verschieben. `SingletonAction`, `WillAppearEvent` und `streamDeck.logger` werden durch den Port ersetzt. `bridge.ts`, `mapping-file.ts` und `host-watch.ts` ziehen mit um.
+- [x] Die Slot-ID kommt vom Port (`KeyBinding.slotId`): Elgato behält den Action-Context, Logi nutzt stabil `logi:slot-<n>`. `MappingStore.locate` (Zuordnung nach Position) bleibt für den Wechsel zwischen Hosts erhalten.
+- [x] Optional, aber empfohlen: `streamdeck-plugin` auf `deck-host` mit einem `ElgatoPort` umstellen, damit die bestehenden Tests (`pane-slot-raise.test.ts`, `replay-b`) die Logik weiter absichern. Wenn das zu aufwendig ist, die Tests nach `deck-host` portieren und einen `FakePort` nutzen.
+- [x] Der Property Inspector (`ui/*.html`, `pi*.ts`) bleibt nur im Elgato-Plugin (`actions/keys.ts`); deck-host kennt ihn nicht. Für Logi fällt er weg. Konfiguriert wird über das Orca-Panel (Plugin A), das es schon gibt.
 
 **Abnahme:** `pnpm test` grün. Ein Vitest-Test mit `FakePort` und `fake-orca` zeigt: Ein Status-Push färbt die Taste, ein Tap ruft `terminal.focus` auf.
 
@@ -108,7 +111,7 @@ Ziel: Die Logik aus `streamdeck-plugin` läuft ohne `@elgato/streamdeck`.
   |---|---|---|
   | Logi → Daemon | `hello` | `pluginVersion`, `device: {model, cols, rows}`, `imageSize: number`, `settings: object` |
   | Logi → Daemon | `keys` | `keys: {slotId, kind, index}[]` (welche Slots in Options+ belegt sind) |
-  | Logi → Daemon | `press` | `slotId`, `gesture: 'tap' \| 'hold'` |
+  | Logi → Daemon | `key` | `slotId`, `edge: 'down' \| 'up'` (aus `ProcessButtonEvent2`: `Press` → down, `Release` → up; `LongPress`/`RepeatPress` ignorieren) |
   | Logi → Daemon | `deviceState` | `connected: boolean` |
   | Daemon → Logi | `image` | `slotId`, `svg: string` (Phase 0: `BitmapImage.FromSvg` rendert `render.ts` korrekt, siehe `docs/logi-findings.md`) |
   | Daemon → Logi | `saveSettings` | `settings: object` |

@@ -16,8 +16,15 @@ vi.mock('@elgato/streamdeck', () => ({
   SingletonAction: class {},
 }));
 
-const { PaneSlot } = await import('./pane-slot.ts');
-const { StatusKey } = await import('./status.ts');
+const { PaneAction, StatusAction } = await import('./keys.ts');
+
+/** deck-host as far as the actions' inspector handling uses it. */
+const hostWith = (c: unknown) =>
+  ({
+    controller: async () => c,
+    panes: { refresh: vi.fn(async () => {}), keyOfSlot: () => null, onRefreshed: null },
+    doctor: { checks: vi.fn(async () => ({ checks: [], slow: false })) },
+  }) as never;
 
 const ev = (id: string, payload: unknown) => ({ action: { id }, payload }) as never;
 
@@ -37,7 +44,7 @@ describe('Property Inspector routing (OpenDeck mounts a hidden PI per action)', 
         slotConfig: (id: string) => ({ id }),
         refresh: vi.fn(async () => new Map()),
       };
-      return { c, slot: new PaneSlot(async () => c as never) };
+      return { c, slot: new PaneAction({} as never, hostWith(c)) };
     };
 
     it('the current PI gets its own state, tagged with its context', async () => {
@@ -91,14 +98,16 @@ describe('Property Inspector routing (OpenDeck mounts a hidden PI per action)', 
   describe('status key', () => {
     const make = () => {
       const c = { refresh: vi.fn(async () => {}) };
-      return { c, key: new StatusKey(async () => c as never) };
+      const host = hostWith(c) as { doctor: { checks: () => Promise<unknown> } };
+      return { c, host, key: new StatusAction({} as never, host as never) };
     };
 
     it('`load` from a hidden PI neither replies nor refreshes', async () => {
-      const { c, key } = make();
+      const { c, host, key } = make();
       await key.onSendToPlugin(ev('B', { type: 'load' }));
       expect(ui.sendToPropertyInspector).not.toHaveBeenCalled();
       expect(c.refresh).not.toHaveBeenCalled();
+      expect(host.doctor.checks).not.toHaveBeenCalled();
       expect(direct).not.toHaveBeenCalled();
     });
   });

@@ -44,6 +44,7 @@
     "@orca-agent-deck/adapter-cli": "workspace:*",
     "@orca-agent-deck/adapter-runtime": "workspace:*",
     "@orca-agent-deck/core": "workspace:*",
+    "@orca-agent-deck/deck-host": "workspace:*",
     "@orca-agent-deck/fake-orca": "workspace:*",
     "@orca-agent-deck/window-raiser": "workspace:*",
     "@rollup/plugin-commonjs": "^29.0.3",

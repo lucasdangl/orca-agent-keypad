@@ -56,7 +56,7 @@ flowchart LR
   SDK -- "USB" --> DEV
 ```
 
-Layering inside B: `packages/core` is pure logic (no `@elgato/*`), every Orca call goes through an adapter. The stack wired in `packages/streamdeck-plugin/src/plugin.ts` is:
+Layering inside B: `packages/core` is pure logic (no `@elgato/*`), every Orca call goes through an adapter. `packages/deck-host` holds the device-neutral part of B (keys, bridge, mappings, Setup doctor) behind a `DevicePort` (`packages/deck-host/src/port.ts`); `packages/streamdeck-plugin` only translates the Stream Deck SDK into that port (`ElgatoPort`). The stack wired in `packages/deck-host/src/deck-host.ts` is:
 
 `DeckController(BridgedAdapter(CliAdapter(makeRuntimeExec(socket, CLI fallback)), BridgeStatusFeed))`
 
@@ -207,11 +207,11 @@ sequenceDiagram
   Note over B: the host quits: B sees its parent pid change or vanish (checked every 2 s), closes the bridge, removes bridge.json only if it still names itself, exits
 ```
 
-Both Stream Deck apps swap freely: the SDK reports no closed host socket, so B polls its parent pid (`watchHost`, `packages/streamdeck-plugin/src/host-watch.ts`) and exits when the host is gone, instead of staying as an orphan on its bridge port. A newer B just overwrites `bridge.json`; the older one, once it exits, leaves that file alone (`BridgeServer.stop` checks pid and token).
+Both Stream Deck apps swap freely: the SDK reports no closed host socket, so B polls its parent pid (`watchHost`, `packages/deck-host/src/host-watch.ts`) and exits when the host is gone, instead of staying as an orphan on its bridge port. A newer B just overwrites `bridge.json`; the older one, once it exits, leaves that file alone (`BridgeServer.stop` checks pid and token).
 
 ## Slot mapping lifecycle
 
-Auto-fill is off in the Stream Deck plugin for now (`DeckController` option `autofill: false` in `packages/streamdeck-plugin/src/plugin.ts`): slots hold pinned panes only, an auto slot stays empty, and a pane an earlier version auto-filled is taken off. The diagram shows the full lifecycle with auto-fill on.
+Auto-fill is off in the Stream Deck plugin for now (`DeckController` option `autofill: false` in `packages/deck-host/src/deck-host.ts`): slots hold pinned panes only, an auto slot stays empty, and a pane an earlier version auto-filled is taken off. The diagram shows the full lifecycle with auto-fill on.
 
 A slot is one Pane key (Stream Deck action context). Mappings live in the plugin's global settings, keyed by `paneKey` (`<tabId>:<leafId>`, stable across Orca restarts). Terminal handles are looked up fresh on every refresh and never stored.
 
