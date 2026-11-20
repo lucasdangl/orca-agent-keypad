@@ -96,6 +96,7 @@ Alternativ öffnet `Cmd+Option+K` oder ein Klick auf **Agent Keypad** in der Sta
 | Halten zeigt kurz „Map in Orca“, kein Panel | Plugin A fehlt, oder Orca läuft nicht | Schritt 1, Orca starten |
 | Status-Taste: „slow updates“ | Plugin A ist nicht verbunden, Status kommt nur über die Abfrage alle 2 s | Plugin A in Orca aktivieren; es verbindet sich beim nächsten Agent-Ereignis |
 | Status-Taste: `OFF` | Orca läuft nicht | Orca starten, die Tasten erholen sich selbst |
+| Eine Taste zeigt immer dasselbe Bild, reagiert aber auf Druck | Das Symbol der Taste wurde in Options+ geändert. Options+ zeigt dann nur noch dieses Bild, die Live-Anzeige ist aus | Taste in Options+ neu belegen und das Symbol nicht ändern |
 | Kurzes rotes `!` nach einem Tap | Der Fokus ist fehlgeschlagen, z. B. weil der Chat geschlossen wurde | Taste neu belegen |
 | Chat fehlt in der Liste im Panel | In dem Chat lief noch nie ein Agent | Einmal einen Prompt schicken |
 

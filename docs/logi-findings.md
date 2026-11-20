@@ -210,6 +210,16 @@ Getestet am 2026-11-20 mit LogiPluginTool 6.4.2.3599 **[Test]**.
 - Plugin A: Ändert sich die Version im Manifest, verlangt Orca die Freigabe neu (`approval_required`), auch bei gleichen Rechten. Nach `orca plugin dev load` steht das Plugin bis dahin auf `pending`.
 - Doppelklick auf `.lplug4` nicht getestet.
 
+## 10. Eigene Tastensymbole frieren die Taste ein
+
+Gesehen am 2026-11-20 mit Options+ und Plugin Service 6.4.2 **[Test]**.
+
+- Ändert man in Options+ das Symbol einer Plugin-Taste, speichert Options+ das Bild als Datei im Profil: `…/LogiPluginService/Applications/Loupedeck70/<app>/Profiles/<id>/ActionIcons/$OrcaKeypad___<Action>.ict`. Das ist JSON, darin steht das Bild als Base64.
+- Solange diese Datei existiert, zeigt der Service nur dieses Bild. Er ruft `GetCommandImage` nicht mehr auf, auch nicht nach `ActionImageChanged()`, einem Neustart des Service oder dem Neu-Anstecken des Keypads. Tastendrücke kommen weiter an.
+- Abhilfe: Taste in Options+ neu belegen, ohne das Symbol zu ändern, oder bei gestopptem Service die `.ict`-Datei löschen. Danach fragt der Service sofort wieder Bilder an.
+- Wer nach einem Bug sucht, sollte zuerst prüfen, ob im Log `GetCommandImage`-Aufrufe ankommen.
+- Bei einem harten Kill des Service bleibt `bridge.json` liegen. Der Daemon beendet sich nach höchstens 0,5 s, und der nächste Daemon überschreibt die Datei.
+
 ## Folge für Phase 2
 
 - Device-Protokoll: `image` trägt `svg: string` (UTF-8, wie `renderKey` es liefert) statt `png: base64`.
