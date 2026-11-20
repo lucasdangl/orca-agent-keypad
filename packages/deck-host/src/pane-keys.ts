@@ -7,7 +7,9 @@ import {
   renderKey,
   renderAnswerKey,
   answerKeyLive,
+  answerPresses,
   ANSWER_LAYOUT,
+  type OtherState,
   type AnswerPad,
   type DeckController,
   type LayoutCell,
@@ -76,6 +78,10 @@ export class PaneKeys {
   private pad: AnswerPad | null = null;
   /** Keys pressed while the pad was up: their key up must not focus a pane. */
   private readonly padPressed = new Set<string>();
+  /** The free-text answer of the question on the pad (Other key): off, dictating, typing. */
+  private other: OtherState = 'off';
+  /** Key presses of pad keys run one after another, in press order. */
+  private sending: Promise<void> = Promise.resolve();
   /** Runs after every refresh (the Stream Deck Property Inspector re-sends its pane list from here). */
   onRefreshed: (() => Promise<void>) | null = null;
 
@@ -180,12 +186,22 @@ export class PaneKeys {
       this.padPressed.add(slotId);
       if (!answerKeyLive(spec, this.pad?.options ?? [])) return;
       // Sent on key down, like a keyboard. Never logs the option's text.
-      this.port.log('info', `answer pad: ${spec.code}`);
-      void this.port
-        .sendKey?.(spec.code)
-        .catch((e: unknown) =>
-          this.port.log('warn', `answer pad: ${spec.code} not sent: ${String(e)}`),
-        );
+      const { presses, other } = answerPresses(spec.action, this.other);
+      const changed = other !== this.other;
+      this.other = other;
+      this.port.log('info', `answer pad: ${spec.action} -> ${presses.join(' ')}`);
+      this.sending = this.sending.then(async () => {
+        for (const p of presses) {
+          if (typeof p === 'number') await new Promise((r) => setTimeout(r, p));
+          else
+            await this.port
+              .sendKey?.(p)
+              .catch((e: unknown) =>
+                this.port.log('warn', `answer pad: ${p} not sent: ${String(e)}`),
+              );
+        }
+      });
+      if (changed) void this.repaint();
       // The answer changes the agent's state: read Orca again soon so the pad goes away.
       setTimeout(() => void this.refresh(), 400);
       return;
@@ -336,6 +352,8 @@ export class PaneKeys {
           const pad = this.port.sendKey && this.ctl ? this.ctl.answerPad() : null;
           if (!!pad !== !!this.pad)
             this.port.log('info', pad ? 'answer pad up' : 'answer pad down');
+          // A new question (or none) starts without a free-text answer.
+          if (!pad || pad.paneKey !== this.pad?.paneKey) this.other = 'off';
           this.pad = pad;
           await this.repaint();
           if (this.onRefreshed && this.ctl) await this.onRefreshed();
@@ -361,7 +379,7 @@ export class PaneKeys {
         const shown = hint && hint.until > now && hint.text ? { ...v, label: hint.text } : v;
         const spec = this.padKey(id);
         const svg = spec
-          ? renderAnswerKey(spec, this.pad?.options ?? [])
+          ? renderAnswerKey(spec, this.pad?.options ?? [], { other: this.other })
           : renderKey(
               { ...shown, keyNumber: this.numbers.get(id) },
               { size: 144, spin: this.spin },

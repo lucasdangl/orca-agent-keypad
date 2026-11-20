@@ -1,12 +1,18 @@
 import { layoutLabel } from './render.ts';
 
-/** A key press the answer pad sends to the app in front (Orca). */
+/** A key press the answer pad sends to the app in front (Orca). `Cmd+E` is Orca's default dictation shortcut. */
 export type AnswerKeyCode =
-  'Escape' | 'Space' | 'ArrowUp' | 'ArrowDown' | 'Return' | '1' | '2' | '3' | '4';
+  'Escape' | 'ArrowUp' | 'ArrowDown' | 'ArrowRight' | 'Return' | '1' | '2' | '3' | '4' | 'Cmd+E';
+
+/**
+ * What a pad key does: one key press, or `Other` (into the free-text field and dictate) / `Send` (submit), whose key
+ * presses depend on what was done before (see `answerPresses`).
+ */
+export type AnswerAction = AnswerKeyCode | 'Other' | 'Send';
 
 export interface AnswerKeySpec {
-  code: AnswerKeyCode;
-  /** Short name on the key (navigation keys). */
+  action: AnswerAction;
+  /** Short name on the key. */
   name: string;
   /** 1-based option this key picks (the digit keys). */
   option?: number;
@@ -15,21 +21,48 @@ export interface AnswerKeySpec {
 /**
  * The answer pad by 1-based key number on a 3 x 3 grid:
  *
- *   Esc     Select  ↑
+ *   Esc     Other   ↑
  *   1       2       ↓
- *   3       4       Enter
+ *   3       4       Send
  */
 export const ANSWER_LAYOUT: Readonly<Record<number, AnswerKeySpec>> = {
-  1: { code: 'Escape', name: 'Esc' },
-  2: { code: 'Space', name: 'Select' },
-  3: { code: 'ArrowUp', name: '↑' },
-  4: { code: '1', name: '1', option: 1 },
-  5: { code: '2', name: '2', option: 2 },
-  6: { code: 'ArrowDown', name: '↓' },
-  7: { code: '3', name: '3', option: 3 },
-  8: { code: '4', name: '4', option: 4 },
-  9: { code: 'Return', name: 'Enter' },
+  1: { action: 'Escape', name: 'Esc' },
+  2: { action: 'Other', name: 'Other' },
+  3: { action: 'ArrowUp', name: '↑' },
+  4: { action: '1', name: '1', option: 1 },
+  5: { action: '2', name: '2', option: 2 },
+  6: { action: 'ArrowDown', name: '↓' },
+  7: { action: '3', name: '3', option: 3 },
+  8: { action: '4', name: '4', option: 4 },
+  9: { action: 'Send', name: 'Send' },
 };
+
+/**
+ * Where the free-text answer stands: `off` (options only), `dictating` (Orca's dictation runs in the answer field),
+ * `typing` (dictation stopped, the text is in the field).
+ */
+export type OtherState = 'off' | 'dictating' | 'typing';
+
+/** A press of an answer pad key in Orca's question card: the key presses to send, a pause in ms, and the next state. */
+export function answerPresses(
+  action: AnswerAction,
+  other: OtherState,
+): { presses: (AnswerKeyCode | number)[]; other: OtherState } {
+  switch (action) {
+    case 'Other':
+      // ↑ from the first option wraps to the free-text field (the card's ↑/↓ cycle through options, then the field).
+      if (other === 'off') return { presses: ['ArrowUp', 'Cmd+E'], other: 'dictating' };
+      return { presses: ['Cmd+E'], other: other === 'dictating' ? 'typing' : 'dictating' };
+    case 'Send':
+      // Enter in the field submits its text; on the options → submits (a multi-select; Enter would only toggle).
+      if (other === 'dictating') return { presses: ['Cmd+E', 700, 'Return'], other: 'off' };
+      return { presses: [other === 'typing' ? 'Return' : 'ArrowRight'], other: 'off' };
+    case 'Escape':
+      return { presses: other === 'dictating' ? ['Cmd+E', 'Escape'] : ['Escape'], other: 'off' };
+    default:
+      return { presses: [action], other };
+  }
+}
 
 /** Is this key live: every key is, except an option the question does not have (when its options are known). */
 export function answerKeyLive(spec: AnswerKeySpec, options: readonly string[]): boolean {
@@ -43,22 +76,25 @@ const esc = (s: string) =>
 /** Navigation keys: dark gradient, a drawn glyph in the key's accent colour and its name below. */
 const NAV_BG = { from: '#2b2e33', to: '#191b1e' };
 const NAV_NAME = '#7d838b';
-const ACCENT: Partial<Record<AnswerKeyCode, string>> = {
+const ACCENT: Partial<Record<AnswerAction, string>> = {
   Escape: '#b98783',
-  Space: '#b9a77c',
+  Other: '#b9a77c',
   ArrowUp: '#8796ab',
   ArrowDown: '#8796ab',
-  Return: '#7fa8a1',
+  Send: '#7fa8a1',
 };
 const stroke = (c: string, w = 12) =>
   `fill="none" stroke="${c}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round"`;
 /** Glyphs on the 144 grid, centred around y = 64. */
-const NAV_GLYPH: Partial<Record<AnswerKeyCode, (c: string) => string>> = {
+const NAV_GLYPH: Partial<Record<AnswerAction, (c: string) => string>> = {
   Escape: (c) => `<path d="M52 44 L92 84 M92 44 L52 84" ${stroke(c)}/>`,
-  Space: (c) => `<path d="M38 56 V80 H106 V56" ${stroke(c, 11)}/>`,
+  // A microphone.
+  Other: (c) =>
+    `<rect x="58" y="30" width="28" height="44" rx="14" fill="${c}"/>` +
+    `<path d="M46 62 Q46 88 72 88 Q98 88 98 62 M72 88 V100" ${stroke(c, 7)}/>`,
   ArrowUp: (c) => `<path d="M42 80 L72 50 L102 80" ${stroke(c, 13)}/>`,
   ArrowDown: (c) => `<path d="M42 50 L72 80 L102 50" ${stroke(c, 13)}/>`,
-  Return: (c) =>
+  Send: (c) =>
     `<path d="M102 38 V66 Q102 80 88 80 H50" ${stroke(c, 11)}/><path d="M64 64 L48 80 L64 96" ${stroke(c, 11)}/>`,
 };
 const OPTION = { from: '#cbb88a', to: '#a68d58', fg: '#26200f' };
@@ -74,15 +110,20 @@ const keyCap = (digit: string, x: number, y: number, s: number, cap: string, fg:
   `<rect x="${x}" y="${y}" width="${s}" height="${s}" rx="${s / 4}" fill="${cap}"/>` +
   `<text x="${x + s / 2}" y="${(y + s * 0.72).toFixed(1)}" font-size="${Math.round(s * 0.62)}" text-anchor="middle" fill="${fg}">${digit}</text>`;
 
-/** One answer pad key as SVG (144 x 144 units, like `renderKey`). The digit keys show the option's text, if known. */
+/**
+ * One answer pad key as SVG (144 x 144 units, like `renderKey`). The digit keys show the option's text, if known; the
+ * Other key turns into a red Stop while dictation runs.
+ */
 export function renderAnswerKey(
   spec: AnswerKeySpec,
   options: readonly string[],
-  size = 144,
+  o: { other?: OtherState; size?: number } = {},
 ): string {
+  const size = o.size ?? 144;
+  const dictating = spec.action === 'Other' && o.other === 'dictating';
   const head =
     `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 144 144" ` +
-    `data-state="answer" data-label="${esc(spec.name)}" data-line2="${spec.code}" font-family="${FONT}" font-weight="700">`;
+    `data-state="answer" data-label="${esc(spec.name)}" data-line2="${dictating ? 'dictating' : spec.action}" font-family="${FONT}" font-weight="700">`;
   if (!answerKeyLive(spec, options)) {
     return (
       head +
@@ -119,12 +160,19 @@ export function renderAnswerKey(
       `</svg>`
     );
   }
-  const accent = ACCENT[spec.code] ?? '#e8edf3';
+  const accent = dictating ? '#d9625b' : (ACCENT[spec.action] ?? '#e8edf3');
+  const name = dictating
+    ? 'Stop'
+    : spec.name === '↑'
+      ? 'Up'
+      : spec.name === '↓'
+        ? 'Down'
+        : spec.name;
   return (
     head +
     gradient(NAV_BG.from, NAV_BG.to) +
-    `<rect x="4" y="4" width="136" height="136" rx="12" fill="none" stroke="${accent}" stroke-width="2" opacity="0.25"/>` +
-    (NAV_GLYPH[spec.code]?.(accent) ?? '') +
-    `<text x="72" y="124" font-size="17" text-anchor="middle" fill="${NAV_NAME}">${esc(spec.name === '↑' ? 'Up' : spec.name === '↓' ? 'Down' : spec.name)}</text></svg>`
+    `<rect x="4" y="4" width="136" height="136" rx="12" fill="none" stroke="${accent}" stroke-width="${dictating ? 5 : 2}" opacity="${dictating ? 0.9 : 0.25}"/>` +
+    (NAV_GLYPH[spec.action]?.(accent) ?? '') +
+    `<text x="72" y="124" font-size="17" text-anchor="middle" fill="${dictating ? accent : NAV_NAME}">${esc(name)}</text></svg>`
   );
 }

@@ -295,7 +295,9 @@ describe('deck-host answer pad', () => {
     port.key('fake:slot-7', 'up');
     port.key('fake:slot-9', 'down');
     port.key('fake:slot-9', 'up');
-    expect(port.sentKeys).toEqual(['1', 'Return']);
+    // Send on the options: → submits (Enter would only toggle the focused option).
+    await until(() => port.sentKeys.length >= 2);
+    expect(port.sentKeys).toEqual(['1', 'ArrowRight']);
     // The key up of a pad key focuses no pane.
     await new Promise((r) => setTimeout(r, 50));
     expect(raise.mock.calls.length).toBe(raised);

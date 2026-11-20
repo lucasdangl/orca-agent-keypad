@@ -7,7 +7,7 @@ All notable changes to this project are documented here. Format: [Keep a Changel
 ### Added
 
 - **Working key** (`Orca Working`): how many agents work right now, on a key or not; a press jumps to the one working longest, again to the next.
-- **Answer pad:** while the chat in front in Orca asks a question or wants a permission, the Pane keys turn into Esc / Select / ↑ / 1 / 2 / ↓ / 3 / 4 / Enter and send those key presses to Orca; the digit keys show the option text. New device protocol message `sendKey`.
+- **Answer pad:** while the chat in front in Orca asks a question or wants a permission, the Pane keys turn into Esc / Other 🎤 / ↑ / 1 / 2 / ↓ / 3 / 4 / Send and send key presses to Orca; the digit keys show the option text. Send submits with → (Enter only toggles an option in a multi-select); Other jumps into the free-text field and starts Orca's dictation (Cmd+E), Send then stops it and submits with Enter. New device protocol message `sendKey`.
 - **Auto-fill is on:** Pane keys nobody mapped take free agent chats and panes in a fixed order and keep them while they exist; a key you clear in the panel stays empty.
 - **Done key** (`Orca Done`, teal): how many agents finished and are unread, on a key or not; a press opens the one that finished first and reads it. Opening the chat in Orca reads it too. Completions from before the plugin started do not count.
 - **The Attention key blinks** while an agent needs you (twice a second, the count stays readable in the dark phase).

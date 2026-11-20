@@ -49,7 +49,18 @@ export const image = base('image').extend({ slotId, svg: z.string() });
 export const saveSettings = base('saveSettings').extend({ settings: z.record(z.unknown()) });
 export const alert = base('alert').extend({ slotId });
 export const sendKey = base('sendKey').extend({
-  key: z.enum(['Escape', 'Space', 'ArrowUp', 'ArrowDown', 'Return', '1', '2', '3', '4']),
+  key: z.enum([
+    'Escape',
+    'ArrowUp',
+    'ArrowDown',
+    'ArrowRight',
+    'Return',
+    '1',
+    '2',
+    '3',
+    '4',
+    'Cmd+E',
+  ]),
 });
 
 export const messageFromLogi = z.discriminatedUnion('type', [hello, keys, key, deviceState]);

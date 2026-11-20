@@ -162,12 +162,14 @@ namespace Loupedeck.OrcaKeypadPlugin
         // The answer pad: one key press to the app in front (Orca), without modifiers. The key name is logged, never text.
         private void SendKey(String key)
         {
+            var modifiers = ModifierKey.None;
             VirtualKeyCode? code = key switch
             {
                 "Escape" => VirtualKeyCode.Escape,
-                "Space" => VirtualKeyCode.Space,
                 "ArrowUp" => VirtualKeyCode.ArrowUp,
                 "ArrowDown" => VirtualKeyCode.ArrowDown,
+                "ArrowRight" => VirtualKeyCode.ArrowRight,
+                "Cmd+E" => VirtualKeyCode.KeyE,
                 "Return" => VirtualKeyCode.Return,
                 "1" => VirtualKeyCode.Key1,
                 "2" => VirtualKeyCode.Key2,
@@ -180,9 +182,13 @@ namespace Loupedeck.OrcaKeypadPlugin
                 FileLog.Info($"sendKey: unknown key '{key}'");
                 return;
             }
+            if (key == "Cmd+E")
+            {
+                modifiers = ModifierKey.Command;
+            }
             try
             {
-                this._plugin.ClientApplication.SendKeyboardShortcut(code.Value, ModifierKey.None);
+                this._plugin.ClientApplication.SendKeyboardShortcut(code.Value, modifiers);
             }
             catch (Exception e)
             {

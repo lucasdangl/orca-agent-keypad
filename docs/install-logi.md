@@ -84,15 +84,19 @@ Options+ schaltet das Keypad-Profil um, wenn Orca vorn ist. Leg die Tasten desha
 
 Pane-Tasten füllen sich von selbst: Jede freie Taste bekommt einen Agent-Chat oder ein Agent-Pane, das noch auf keiner Taste liegt, und behält es, solange es existiert. Neue Chats rücken in freie Tasten nach. Wird ein Chat geschlossen, wird seine Taste nach kurzer Zeit frei. Eine Taste, die du im Panel mit **Unmap** leerst, bleibt dauerhaft leer.
 
-**Antwort-Modus:** Steht in Orca ein Chat vorne, der eine Frage stellt oder eine Freigabe will, werden die Pane-Tasten zu Antworttasten. Ein Druck schickt den Tastendruck an Orca:
+**Antwort-Modus:** Steht in Orca ein Chat vorne, der eine Frage stellt oder eine Freigabe will, werden die Pane-Tasten zu Antworttasten. Ein Druck schickt Tastendrücke an Orca:
 
 | | | |
 |---|---|---|
-| Esc | Select (Leertaste) | ↑ |
+| Esc | Other 🎤 | ↑ |
 | 1 | 2 | ↓ |
-| 3 | 4 | Enter |
+| 3 | 4 | Send |
 
-Die Tasten 1–4 zeigen den Text der jeweiligen Option. Optionen, die die Frage nicht hat, sind dunkel. Ist die Frage beantwortet, zeigen die Tasten wieder die Chats. Die Belegung richtet sich nach der Position der Taste (Slot 1 = oben links). Für die Tastendrücke braucht der Logi Plugin Service unter macOS eventuell die Freigabe unter **Datenschutz & Sicherheit → Bedienungshilfen**.
+- **1–4** wählen eine Option, bei Mehrfachauswahl kreuzen sie an. Die Tasten zeigen den Text der Option. Optionen, die die Frage nicht hat, sind dunkel.
+- **Send** schickt die Auswahl ab (in Orca die Taste →). Nach „Other“ schickt Send den Text ab (Enter).
+- **Other 🎤** springt ins Freitextfeld der Frage und startet Orcas Diktat (Cmd+E). Die Taste wird dann zu einem roten **Stop**. Ein zweiter Druck beendet das Diktat. Send beendet es auch und schickt ab. Dafür muss in Orca unter **Settings → Voice** das Diktat eingeschaltet sein, mit dem Kürzel Cmd+E.
+
+Ist die Frage beantwortet, zeigen die Tasten wieder die Chats. Die Belegung richtet sich nach der Position der Taste (Slot 1 = oben links).
 
 Von Hand belegen geht so:
 
