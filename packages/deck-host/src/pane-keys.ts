@@ -238,6 +238,11 @@ export class PaneKeys {
     // A paired-server pane takes over a second to switch: mark the key focused at once so the
     // press is visibly taken. The next refresh shows what Orca really has selected.
     const v = this.views.get(id);
+    // The keypad: a tap on an empty key opens the Orca panel at its details, to map a chat to it.
+    if (this.holdResets && (!v || v.state === 'unmapped')) {
+      await this.openPanel(id, 'press');
+      return;
+    }
     if (v && v.state !== 'unmapped') {
       this.views.set(id, { ...v, focused: true });
       void this.repaint();
@@ -263,6 +268,11 @@ export class PaneKeys {
       await this.refresh();
       return;
     }
+    await this.openPanel(slot, 'hold');
+  }
+
+  /** Opens the Orca panel at this key's details (a hold, or on the keypad a tap on an empty key). */
+  private async openPanel(slot: string, how: 'hold' | 'press'): Promise<void> {
     const key = this.keyOfSlot(slot);
     const t0 = Date.now();
     const opened = key !== null && (await this.panel.open(key));
@@ -270,7 +280,7 @@ export class PaneKeys {
     if (opened === true) await this.raise().catch(() => {});
     this.port.log(
       'info',
-      `hold slot=${shortSlot(slot)} -> ${opened === 'hidden' ? 'sidebar hidden' : opened ? 'panel opened, Orca raised' : 'panel not opened'} ${Date.now() - t0}ms`,
+      `${how} slot=${shortSlot(slot)} -> ${opened === 'hidden' ? 'sidebar hidden' : opened ? 'panel opened, Orca raised' : 'panel not opened'} ${Date.now() - t0}ms`,
     );
     if (opened) return;
     // Orca closed, the Orca plugin missing or an old Orca: say where else a key is mapped, long enough to read.

@@ -102,8 +102,8 @@ Ist die Frage beantwortet, zeigen die Tasten wieder die Chats. Die Belegung rich
 
 Von Hand belegen geht so:
 
-1. Das Panel **Agent Keypad** öffnen: mit `Cmd+Option+K` oder einem Klick auf **Agent Keypad** in der Statusleiste von Orca.
-2. Im Panel die Taste anklicken und den Chat oder das Pane für sie wählen.
+1. Das Panel **Agent Keypad** öffnen: Ein Klick auf eine **leere** Pane-Taste öffnet es direkt bei dieser Taste. Sonst mit `Cmd+Option+K` oder einem Klick auf **Agent Keypad** in der Statusleiste von Orca.
+2. Im Panel den Chat oder das Pane für die Taste wählen.
 
 Belegungen bleiben über Neustarts erhalten. Sie liegen in `~/.orca-deck/mappings.json`.
 
@@ -116,6 +116,7 @@ Belegungen bleiben über Neustarts erhalten. Sie liegen in `~/.orca-deck/mapping
 | Status-Taste: „slow updates“ | Plugin A ist nicht verbunden, Status kommt nur über die Abfrage alle 2 s | Plugin A in Orca aktivieren; es verbindet sich beim nächsten Agent-Ereignis |
 | Status-Taste: `OFF` | Orca läuft nicht | Orca starten, die Tasten erholen sich selbst |
 | Eine Taste zeigt immer dasselbe Bild, reagiert aber auf Druck | Das Symbol der Taste wurde in Options+ geändert. Options+ zeigt dann nur noch dieses Bild, die Live-Anzeige ist aus | Taste in Options+ neu belegen und das Symbol nicht ändern |
+| Klick auf eine leere Taste zeigt kurz „Map in Orca“, kein Panel | Plugin A fehlt, oder Orca läuft nicht | Schritt 1, Orca starten |
 | Kurzes rotes `!` nach einem Tap | Der Fokus ist fehlgeschlagen, z. B. weil der Chat geschlossen wurde | Taste neu belegen |
 | Chat fehlt in der Liste im Panel | In dem Chat lief noch nie ein Agent | Einmal einen Prompt schicken |
 

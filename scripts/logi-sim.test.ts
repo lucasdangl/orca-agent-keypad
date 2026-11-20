@@ -95,6 +95,15 @@ describe('logi daemon over the device protocol', () => {
     expect(orca.s.focusedHandle).toBe(null);
   });
 
+  it('a tap on an empty key opens the Orca panel at it, to map a chat', async () => {
+    await sim.hold(SLOT1, 1300); // back to auto-fill: no chat is free, the key is empty
+    await sim.until(() => sim.shown(SLOT1)?.state === 'unmapped');
+    const asked = a.waitFor((m) => m.type === 'holdKey', 5000);
+    sim.tap(SLOT1);
+    expect(await asked).toMatchObject({ type: 'holdKey', key: 1 });
+    expect(orca.s.focusedHandle).toBe(null);
+  });
+
   it('closing stdin stops the daemon cleanly and removes bridge.json', async () => {
     expect(await sim.close()).toBe(0);
     expect(existsSync(orca.bridgeFile)).toBe(false);
