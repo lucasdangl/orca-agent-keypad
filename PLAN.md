@@ -146,18 +146,20 @@ Ordner `logi-plugin/OrcaKeypadPlugin/` (vom Logi Plugin Tool erzeugt).
 
 Anlass: Beim Hardware-Test liefen alle Agents als Orca-Chats, nicht in Terminals. Upstream kennt nur Terminal-Panes (siehe `docs/logi-findings.md` §8).
 
-- [ ] `adapter-cli` (`snapshotOne`): Für jeden Agent aus `worktree ps`, dessen `paneKey` mit `structured-agent-session-` beginnt und zu keinem Terminal gehört, einen `PaneInfo` erzeugen. Felder:
+- [x] `adapter-cli` (`snapshotOne`): Für jeden Agent aus `worktree ps`, dessen `paneKey` mit `structured-agent-session-` beginnt und zu keinem Terminal gehört, einen `PaneInfo` erzeugen. Felder:
   - `kind: 'chat'` (neues optionales Feld)
   - `handle: ''`
   - `title` = `conversationName` (sonst „<agent> chat“)
   - `worktreeId`, `repo`, `branch` und `agentType` aus dem Worktree
   - Der Status kommt schon heute über `statuses`.
   - `worktreePsResponse` um `conversationName` erweitern.
-- [ ] `adapter-cli` (`focus`): Ein Chat wird immer über `terminal.reveal` (Runtime-Socket) fokussiert. Ohne Socket meldet `focus` sauber `ok: false` („Chat braucht die Runtime“), ohne CLI-Fallback.
-- [ ] `fake-orca`: Chats simulieren (`addChat`). `worktree ps` meldet sie, `terminal.reveal` auf ihren `paneKey` setzt den Fokus.
-- [ ] Tests: Unit-Tests im Adapter. `deck-host.test.ts` und `logi-sim.test.ts` je mit einem Chat: Status färbt die Taste, Tap ruft `terminal.reveal` auf.
+- [x] `adapter-cli` (`focus`): Ein Chat wird immer über `terminal.reveal` (Runtime-Socket) fokussiert. Ohne Socket meldet `focus` sauber `ok: false` („Chat braucht die Runtime“), ohne CLI-Fallback.
+- [x] `fake-orca`: Chats simulieren (`addChat`). `worktree ps` meldet sie, `terminal.reveal` auf ihren `paneKey` setzt den Fokus.
+- [x] Tests: Unit-Tests im Adapter. `deck-host.test.ts` und `logi-sim.test.ts` je mit einem Chat: Status färbt die Taste, Tap ruft `terminal.reveal` auf.
 - [ ] Prüfen, ob Plugin A `agent.status.changed` auch für Chats bekommt. Wenn ja, kommt der Push sofort. Wenn nicht, greift der 2-s-Poll. Beides funktioniert, das Ergebnis kommt nach `docs/logi-findings.md`.
-- [ ] `replay-b` bleibt grün: Chats ändern nichts für Terminal-Panes. Die Stream-Deck-Version bekommt Chats automatisch mit.
+- [x] `replay-b` bleibt grün: Chats ändern nichts für Terminal-Panes. Die Stream-Deck-Version bekommt Chats automatisch mit.
+
+- [x] Hold-zum-Belegen bei Chats: Der Layout-Baum kennt keine Chats. `focusedPaneKey` fragt deshalb `session.tabs.list` (nur über den Runtime-Socket und nur, wenn der Worktree Chats hat).
 
 **Abnahme:** Auf dem echten Keypad liegt ein Orca-Chat. Er wird blau, solange der Agent arbeitet, gelb, wenn er auf dich wartet, und grün, wenn er fertig ist. Ein Tap öffnet genau diesen Chat und holt Orca nach vorn.
 

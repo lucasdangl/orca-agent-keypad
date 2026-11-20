@@ -5,8 +5,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   BridgeSimulator,
   FakeRuntime,
+  addChat,
   addPane,
   advance,
+  reveal,
   newState,
   setAgent,
   type SimState,
@@ -45,6 +47,7 @@ beforeEach(async () => {
   s = newState();
   addPane(s, 'a');
   addPane(s, 'b');
+  addChat(s, 'c', { name: 'Fix the login' });
   polled = s;
   runtime = new FakeRuntime({
     state: () => polled,
@@ -131,5 +134,46 @@ describe('deck-host on a FakePort with fake Orca', () => {
     port.images.clear();
     port.setKeys(port.paneKeys(3));
     await until(() => port.shown(SLOT)?.state === 'completed');
+  });
+});
+
+// Orca's agent chats are no terminals (docs/logi-findings.md §8): the runtime socket lists them through worktree ps,
+// opens them with terminal.reveal and names the one in front through session.tabs.list.
+describe('deck-host with an Orca agent chat', () => {
+  const CHAT_SLOT = 'fake:slot-2';
+  const CHAT_KEY = 'structured-agent-session-session-c:leaf-c';
+
+  it('a chat on a key shows its agent state and a tap opens it through terminal.reveal', async () => {
+    (await host.controller()).configure(CHAT_SLOT, { paneKey: CHAT_KEY });
+    advance(s, 1000);
+    setAgent(s, 'c', 'working', 'Bash');
+    await host.panes.refresh();
+    await until(() => port.shown(CHAT_SLOT)?.state === 'working');
+    advance(s, 1000);
+    setAgent(s, 'c', 'waiting');
+    await host.panes.refresh();
+    await until(() => port.shown(CHAT_SLOT)?.state === 'needs_input');
+
+    port.key(CHAT_SLOT, 'down');
+    port.key(CHAT_SLOT, 'up');
+    await until(() => s.focusedHandle === 'chat-c');
+    expect(runtime.requests.find((r) => r.method === 'terminal.reveal')?.params).toMatchObject({
+      tabId: 'structured-agent-session-session-c',
+      leafId: 'leaf-c',
+    });
+    expect(runtime.requests.some((r) => r.method === 'terminal.focus')).toBe(false);
+    await until(() => raise.mock.calls.length > 0);
+    expect(port.alerts).toEqual([]);
+  });
+
+  it('the Orca panel puts the chat in front on a key (assign without a paneKey)', async () => {
+    reveal(s, 'structured-agent-session-session-c', 'leaf-c');
+    await a.connect({ minor: 5 });
+    a.send({ v: 1, type: 'assignKey', requestId: 'r1', key: 3, replace: true });
+    const r = await a.waitFor((m) => m.type === 'pairResult' && m['requestId'] === 'r1');
+    expect(r).toMatchObject({ ok: true });
+    expect(runtime.requests.some((x) => x.method === 'session.tabs.list')).toBe(true);
+    // Done and just opened (so seen): the key shows the chat by its name.
+    await until(() => port.shown('fake:slot-3')?.label === 'Fix the login');
   });
 });

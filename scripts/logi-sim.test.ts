@@ -1,6 +1,12 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { advance, setAgent, type BridgeSimulator } from '../packages/fake-orca/src/index.ts';
+import {
+  addChat,
+  addPane,
+  advance,
+  setAgent,
+  type BridgeSimulator,
+} from '../packages/fake-orca/src/index.ts';
 import { DAEMON_SOURCE, FakeOrcaEnv, LogiSim } from './logi-sim-lib.ts';
 
 // Phase 2 acceptance: the Logi daemon as a child process, driven over the device protocol the way the C# plugin
@@ -91,4 +97,53 @@ describe('logi daemon over the device protocol', () => {
     expect(await sim.close()).toBe(0);
     expect(existsSync(orca.bridgeFile)).toBe(false);
   });
+});
+
+// Phase 3b: an Orca agent chat on a key (docs/logi-findings.md §8), through the real daemon process.
+describe('logi daemon with an Orca agent chat', () => {
+  const CHAT = 'structured-agent-session-session-c:leaf-c';
+  let o: FakeOrcaEnv;
+  let d: LogiSim;
+  let pa: BridgeSimulator;
+
+  afterEach(async () => {
+    pa?.close();
+    d?.kill();
+    await o?.stop();
+  });
+
+  it('shows the chat working, waiting and done; a tap opens it through terminal.reveal', async () => {
+    o = await FakeOrcaEnv.create((st) => {
+      addPane(st, 'a', { title: 'agent a' });
+      addChat(st, 'c', { name: 'Fix the login' });
+    });
+    d = new LogiSim(DAEMON_SOURCE, o.env);
+    d.hello();
+    d.keys(3);
+    await d.until(() => existsSync(o.bridgeFile) && d.images.size === 3);
+    pa = o.pluginA();
+    await pa.connect({ minor: 5 });
+    pa.send({ v: 1, type: 'assignKey', requestId: 'c1', key: 2, replace: true, paneKey: CHAT });
+    expect(await pa.waitFor((m) => m.type === 'pairResult')).toMatchObject({ ok: true });
+    const SLOT2 = 'logi:slot-2';
+    await d.until(() => d.shown(SLOT2)?.label === 'Fix the login');
+
+    advance(o.s, 1000);
+    setAgent(o.s, 'c', 'working', 'Bash');
+    await d.until(() => d.shown(SLOT2)?.state === 'working');
+    advance(o.s, 1000);
+    setAgent(o.s, 'c', 'waiting');
+    await d.until(() => d.shown(SLOT2)?.state === 'needs_input');
+    advance(o.s, 1000);
+    setAgent(o.s, 'c', 'done');
+    await d.until(() => d.shown(SLOT2)?.state === 'completed');
+
+    d.tap(SLOT2);
+    await d.until(() => o.s.focusedHandle === 'chat-c');
+    expect(o.runtime.requests.find((r) => r.method === 'terminal.reveal')?.params).toMatchObject({
+      tabId: 'structured-agent-session-session-c',
+      leafId: 'leaf-c',
+    });
+    expect(o.runtime.requests.some((r) => r.method === 'terminal.focus')).toBe(false);
+  }, 30_000);
 });

@@ -13,6 +13,7 @@ import type {
 import {
   classifyFinalMessage,
   envHostId,
+  isChatPaneKey,
   isLocalHost,
   LOCAL_HOST,
   mergeHostCensus,
@@ -35,6 +36,7 @@ import {
   activePaneKey,
   statusResponse,
   revealResponse,
+  sessionTabsResponse,
   switchResponse,
   terminalShowResponse,
   terminalListResponse,
@@ -262,6 +264,30 @@ export class CliAdapter implements OrcaAdapter {
       recordedPaneKey: t.recordedPaneKey ?? null,
       lastOutputAt: t.lastOutputAt ?? null,
     }));
+    // Orca's agent chats are no terminals: `worktree ps` is the only listing that has them.
+    const known = new Set(panes.map((p) => p.paneKey));
+    for (const wt of ps.result.worktrees) {
+      for (const a of wt.agents) {
+        if (!isChatPaneKey(a.paneKey) || a.parentPaneKey || known.has(a.paneKey)) continue;
+        known.add(a.paneKey);
+        const agent = a.agentType ?? null;
+        panes.push({
+          paneKey: a.paneKey,
+          hostId: environment ? envHostId(environment) : wt.hostId,
+          handle: '',
+          kind: 'chat',
+          worktreeId: wt.worktreeId,
+          title: a.displayName || a.conversationName || a.taskTitle || `${agent ?? 'agent'} chat`,
+          connected: true,
+          agentType: agent,
+          worktreePath: null,
+          environment,
+          repo: wt.repo ?? null,
+          branch: wt.branch?.replace('refs/heads/', '') ?? null,
+          tabTitle: null,
+        });
+      }
+    }
     const statuses: PaneStatusEvent[] = [];
     for (const wt of ps.result.worktrees) {
       for (const a of wt.agents) {
@@ -385,6 +411,13 @@ export class CliAdapter implements OrcaAdapter {
         this.focusNote += ' no-active-worktree';
         return null;
       }
+      // The layout tree has terminals only: with an agent chat in front it names the terminal tab
+      // shown last. The session tabs know (runtime socket only; without it, the layout answers).
+      const chat = await this.activeChat(active.worktreeId, ps);
+      if (chat !== undefined) {
+        if (chat === null) this.focusNote += ' chat-without-agent-entry';
+        return chat;
+      }
       const fromLayout = activePaneKey(layouts, active.worktreeId);
       if (fromLayout) return fromLayout;
       this.focusNote += ' active-worktree-has-no-layout';
@@ -403,15 +436,82 @@ export class CliAdapter implements OrcaAdapter {
     }
   }
 
+  /**
+   * The agent chat the worktree shows: its pane key, null when a chat is shown that `worktree ps`
+   * does not list (no agent entry yet), undefined when a non-chat tab is shown or the tabs cannot
+   * be read (no runtime socket, older Orca).
+   */
+  private async activeChat(
+    worktreeId: string,
+    ps: z.infer<typeof worktreePsResponse>,
+  ): Promise<string | null | undefined> {
+    const agents = ps.result.worktrees.find((w) => w.worktreeId === worktreeId)?.agents ?? [];
+    // No chat in this worktree: nothing to ask (and no extra call per focus read).
+    if (!agents.some((a) => isChatPaneKey(a.paneKey))) return undefined;
+    let tabs;
+    try {
+      tabs = await this.call(sessionTabsResponse, [
+        'session',
+        'tabs',
+        '--worktree',
+        `id:${worktreeId}`,
+      ]);
+    } catch {
+      return undefined;
+    }
+    const { activeTabType, activeTabId } = tabs.result;
+    if (activeTabType !== 'agent-session' || !activeTabId) return undefined;
+    const sessionId = activeTabId.replace(/^agent-session:/, '');
+    const agent = agents.find(
+      (a) =>
+        isChatPaneKey(a.paneKey) &&
+        !a.parentPaneKey &&
+        (a.orcaSessionId === sessionId ||
+          a.paneKey.startsWith(`structured-agent-session-${sessionId}:`)),
+    );
+    return agent?.paneKey ?? null;
+  }
+
   /** `worktree set --read`: clears the unread dot in Orca. Local worktrees only. */
   async markWorktreeRead(worktreeId: string): Promise<void> {
     await this.exec(['worktree', 'set', '--worktree', `id:${worktreeId}`, '--read', '--json']);
+  }
+
+  /**
+   * An agent chat has no terminal handle: only `terminal.reveal` on the runtime socket opens it
+   * (docs/logi-findings.md §8). There is no CLI route, so without the socket the focus fails.
+   */
+  private async revealChat(
+    pane: PaneRef & { environment?: string | null; worktreeId?: string },
+    tabId: string,
+    leafId: string,
+  ): Promise<FocusResult> {
+    if (!pane.worktreeId || !leafId)
+      return { ok: false, error: 'chat pane without worktree or leaf' };
+    const host = pane.environment ? ['--execution-host', runtimeHostId(pane.environment)] : [];
+    try {
+      const r = await this.call(revealResponse, [
+        'terminal',
+        'reveal',
+        '--worktree',
+        pane.worktreeId,
+        '--tab',
+        tabId,
+        '--leaf',
+        leafId,
+        ...host,
+      ]);
+      return r.result.reveal.navigated ? { ok: true } : { ok: false, error: 'chat not navigated' };
+    } catch (e) {
+      return { ok: false, error: `chat needs the Orca runtime socket: ${(e as Error).message}` };
+    }
   }
 
   async focus(
     pane: PaneRef & { handle: string; environment?: string | null; worktreeId?: string },
   ): Promise<FocusResult> {
     const { tabId, leafId } = splitPaneKey(pane.paneKey);
+    if (isChatPaneKey(pane.paneKey)) return this.revealChat(pane, tabId, leafId);
     if ((pane.environment || this.revealLocal) && pane.worktreeId && tabId && leafId) {
       // A paired server has no window: the CLI asks it about the pane (a new remote connection
       // per call, 1.3-3.4 s) and then has this Orca reveal it. We know the pane already, so we

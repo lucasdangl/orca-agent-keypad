@@ -31,6 +31,8 @@ export interface PaneInfo extends PaneRef {
   recordedPaneKey?: string | null;
   /** ms epoch of the pane's last output, when Orca reports it. */
   lastOutputAt?: number | null;
+  /** `chat`: an Orca agent chat (a structured agent session), not a terminal; it has no handle. */
+  kind?: 'terminal' | 'chat';
 }
 
 export interface PaneStatusEvent {

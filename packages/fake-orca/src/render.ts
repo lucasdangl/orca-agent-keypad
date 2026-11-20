@@ -40,11 +40,14 @@ function scope(s: SimState) {
  * says Orca sends none (`orca.layouts`).
  */
 function visualLayouts(s: SimState) {
-  const focused = s.panes.find((p) => p.handle === s.focusedHandle);
-  if (!focused) return [];
-  const host = focused.executionHostId;
+  const shownPane = s.panes.find((p) => p.handle === s.focusedHandle);
+  if (!shownPane) return [];
+  const host = shownPane.executionHostId;
   if (host !== 'local' && !s.remoteLayouts) return [];
-  const shown = s.panes.filter((p) => p.executionHostId === host);
+  const shown = s.panes.filter((p) => p.executionHostId === host && !p.chat);
+  // Chats are not in the tree: with one in front Orca still names a terminal tab as active.
+  const focused = shownPane.chat ? shown[0] : shownPane;
+  if (!focused) return [];
   const tabIds = [...new Set(shown.map((p) => p.tabId))];
   return [
     {
@@ -64,7 +67,7 @@ function visualLayouts(s: SimState) {
 }
 
 export function terminalList(s: SimState) {
-  const terminals = s.panes.map(terminal);
+  const terminals = s.panes.filter((p) => !p.chat).map(terminal);
   return envelope({
     terminals,
     visualLayouts: visualLayouts(s),
@@ -83,6 +86,13 @@ export function worktreePs(s: SimState) {
           ? [
               {
                 paneKey: `${p.tabId}:${p.leafId}`,
+                ...(p.chat
+                  ? {
+                      orcaSessionId: p.chat.sessionId,
+                      conversationName: p.chat.name,
+                      parentPaneKey: null,
+                    }
+                  : {}),
                 state: p.agent.state,
                 agentType: p.agentIdentity,
                 toolName: p.agent.toolName,
@@ -130,6 +140,16 @@ export function worktreePs(s: SimState) {
     totalCount: worktrees.length,
     truncated: false,
   });
+}
+
+/** `session.tabs.list` for a worktree: which tab it shows, chats included. */
+export function sessionTabs(s: SimState, worktree: string) {
+  const focused = s.panes.find((p) => p.handle === s.focusedHandle);
+  if (!focused || `id:${worktreeOf(focused.executionHostId)}` !== worktree)
+    return { activeTabId: null, activeTabType: null, tabs: [] };
+  return focused.chat
+    ? { activeTabId: `agent-session:${focused.chat.sessionId}`, activeTabType: 'agent-session' }
+    : { activeTabId: `${focused.tabId}::${focused.leafId}`, activeTabType: 'terminal' };
 }
 
 export function hostList(s: SimState) {

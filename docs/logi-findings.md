@@ -178,6 +178,11 @@ Getestet am 2026-11-20 mit Orca 1.4.264 **[Test]**.
   - `lastAssistantMessage` enthält Inhalt und darf **nie** geloggt werden.
 - **Hineinspringen:** `terminal.reveal { worktreeId, tabId, leafId, executionHostId }` mit `tabId:leafId` aus dem Chat-`paneKey` antwortet `navigated: true`. Orca zeigt danach genau diesen Chat-Tab (vom Nutzer bestätigt).
   - Einen CLI-Befehl dafür gibt es nicht: `terminal switch` braucht einen Terminal-Handle. Chats gehen also nur über den Runtime-Socket.
+- **Welcher Tab ist vorn?** Der Layout-Baum (`terminal.list --include-visual-layouts`) kennt nur Terminals. Steht ein Chat vorn, nennt er trotzdem den zuletzt gezeigten Terminal-Tab als aktiv **[Test]**.
+  - Die Runtime-Methode `session.tabs.list { worktree: "id:<worktreeId>" }` meldet `activeTabType: "agent-session"` und `activeTabId: "agent-session:<sessionId>"` **[Test]**. Damit findet Hold-zum-Belegen den Chat.
+  - Daneben gibt es `agentSession.reveal`. Ungetestet, weil `terminal.reveal` reicht.
+- Ein Chat ohne Agent-Eintrag (noch nie gelaufen) fehlt in `worktree ps` und bekommt keinen Pane **[Test]**.
+- **Gebaut (Phase 3b):** Ein Daemon auf dem echten Keypad listet beide laufenden Chats als Panes und erkennt den Chat, der vorn ist, als fokussiert **[Test]**.
 - Auf diesem Rechner laufen **alle** Agents als Chats. Die Terminal-Panes sind einfache Shells. Ohne Chat-Unterstützung zeigt das Keypad deshalb keinen einzigen Agent.
 
 ## Folge für Phase 2

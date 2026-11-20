@@ -14,6 +14,8 @@ export interface Pane {
   exitCause?: 'crash' | 'nonzero' | 'clean' | null;
   preview: string;
   lastOutputAt: number;
+  /** An Orca agent chat (`addChat`): listed by `worktree ps` only, opened by `terminal.reveal`. */
+  chat?: { sessionId: string; name: string };
   agent: {
     state: AgentState;
     toolName: string | null;
@@ -89,6 +91,44 @@ export function addPane(
   note(s, `addPane ${key}`);
 }
 
+/**
+ * An Orca agent chat: no terminal, so `terminal list` and the layout tree leave it out; `worktree ps`
+ * lists its agent under the pane key `structured-agent-session-<sessionId>:<leaf>`. Its `handle`
+ * is internal (focus bookkeeping), Orca reports none.
+ */
+export function addChat(
+  s: SimState,
+  key: string,
+  opts: { name?: string; agent?: string; host?: string } = {},
+): void {
+  const sessionId = `session-${key}`;
+  s.panes.push({
+    key,
+    handle: `chat-${key}`,
+    tabId: `structured-agent-session-${sessionId}`,
+    leafId: `leaf-${key}`,
+    title: opts.name ?? `chat ${key}`,
+    agentIdentity: opts.agent ?? 'claude',
+    executionHostId: opts.host ?? 'local',
+    connected: true,
+    preview: '',
+    lastOutputAt: s.now,
+    agent: { state: 'done', toolName: null, stateStartedAt: s.now },
+    chat: { sessionId, name: opts.name ?? `chat ${key}` },
+  });
+  note(s, `addChat ${key}`);
+}
+
+/** `terminal.reveal`: opens the pane (terminal or chat) with these ids. */
+export function reveal(s: SimState, tabId: string, leafId: string): boolean {
+  const p = s.panes.find((x) => x.tabId === tabId && x.leafId === leafId);
+  if (!p) return false;
+  s.focusedHandle = p.handle;
+  if (p.executionHostId === 'local' && !p.chat) s.localFocusedHandle = p.handle;
+  note(s, `reveal ${p.key}`);
+  return true;
+}
+
 export function removePane(s: SimState, key: string): void {
   s.panes = s.panes.filter((p) => p.key !== key);
   note(s, `removePane ${key}`);
@@ -125,7 +165,7 @@ export function setHost(s: SimState, id: string, connected: boolean): void {
 /** Simulated Orca restart: handles rotate, panes keep tab/leaf ids. */
 export function restart(s: SimState): void {
   s.generation += 1;
-  for (const p of s.panes) p.handle = handleFor(s.generation, p.key);
+  for (const p of s.panes) if (!p.chat) p.handle = handleFor(s.generation, p.key);
   s.focusedHandle = null;
   s.localFocusedHandle = null;
   note(s, `restart gen=${s.generation}`);
@@ -137,7 +177,7 @@ export function advance(s: SimState, ms: number): void {
 
 /** `terminal switch`: records the focus call. */
 export function focus(s: SimState, handle: string): void {
-  const p = s.panes.find((x) => x.handle === handle);
+  const p = s.panes.find((x) => x.handle === handle && !x.chat);
   if (!p) throw new Error('terminal_handle_stale');
   s.focusedHandle = handle;
   if (p.executionHostId === 'local') s.localFocusedHandle = handle;
