@@ -9,16 +9,16 @@ type: plugin4
 name: OrcaKeypad
 
 # Plugin name that is shown to the user.
-displayName: Orca Agent Keypad (Spike)
+displayName: Orca Agent Keypad
 
 # Short description of the plugin.
-description: Phase 0 spike. Shows Orca agent panes on the MX Creative Keypad.
+description: Every keypad key shows an Orca agent pane (working, needs input, done); a tap jumps to it in Orca. Needs Orca 1.4.248+ and Node 22.6+.
 
 # Name of the plugin library file.
 pluginFileName: OrcaKeypadPlugin.dll
 
 # Plugin version.
-version: 1.0
+version: 0.1.0
 
 # Author of the plugin. The author can be a company or an individual developer.
 author: ldangl

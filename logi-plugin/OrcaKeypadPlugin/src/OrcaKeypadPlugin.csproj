@@ -20,6 +20,9 @@
     <OutputPath>$(BaseOutputPath)$(Configuration)\bin\</OutputPath>
 
     <PluginShortName>OrcaKeypad</PluginShortName>
+    <Version>0.1.0</Version>
+    <!-- The Node daemon (plugin B for the keypad), built by `pnpm logi:build` in the repository root. -->
+    <DaemonBundle>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)../../../packages/logi-daemon/dist/daemon.mjs'))</DaemonBundle>
   </PropertyGroup>
 
   <ItemGroup>
@@ -33,6 +36,12 @@
     </ItemGroup>
     <Copy SourceFiles="@(PackageFiles)" DestinationFolder="$(OutputPath)..\%(RecursiveDir)" />
     <Message Text="✅ Package files copied to $(OutputPath)..\" Importance="High" />
+  </Target>
+
+  <Target Name="CopyDaemon" AfterTargets="PostBuildEvent" BeforeTargets="PostBuild">
+    <Warning Condition="!Exists('$(DaemonBundle)')" Text="daemon.mjs not found at $(DaemonBundle): run `pnpm logi:build` in the repository root first" />
+    <Copy Condition="Exists('$(DaemonBundle)')" SourceFiles="$(DaemonBundle)" DestinationFolder="$(OutputPath)daemon\" SkipUnchangedFiles="true" />
+    <Message Condition="Exists('$(DaemonBundle)')" Text="🟢 daemon.mjs copied to $(OutputPath)daemon" Importance="High" />
   </Target>
 
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">

@@ -129,18 +129,37 @@ Ziel: Die Logik aus `streamdeck-plugin` läuft ohne `@elgato/streamdeck`.
 
 Ordner `logi-plugin/OrcaKeypadPlugin/` (vom Logi Plugin Tool erzeugt).
 
-- [ ] **Lebenszyklus:** Beim Laden des Plugins `node daemon.mjs` als Kindprozess starten (Node-Pfad aus den Plugin-Settings, sonst Kandidatenliste aus Phase 0). stdout zeilenweise lesen, stderr ins Logi-Log. Bei Absturz mit Backoff neu starten (1 s → 30 s). Beim Entladen stdin schließen und den Prozess beenden.
-- [ ] **Befehle:**
-  - `Orca Pane` (parametrisiert, `slot-1 … slot-9`): Bild = letztes PNG für diesen Slot, Druck = `press tap`.
+- [x] **Lebenszyklus:** Beim Laden des Plugins `node daemon.mjs` als Kindprozess starten (Node-Pfad aus den Plugin-Settings, sonst Kandidatenliste aus Phase 0). stdout zeilenweise lesen, stderr ins Logi-Log. Bei Absturz mit Backoff neu starten (1 s → 30 s). Beim Entladen stdin schließen und den Prozess beenden.
+- [x] **Befehle:**
+  - `Orca Pane` (parametrisiert, `slot-1 … slot-9`): Bild = letztes SVG für diesen Slot, Drücken/Loslassen = `key down`/`key up`.
   - `Orca Status` (eine Taste: Verbindung, Anzahl Agents nach Zustand).
   - `Orca Attention` (springt zum Agent, der am längsten auf dich wartet).
-  - Falls Phase 0 kein Key-Down/Up ergibt: `Orca: Taste zuordnen` als eigener Befehl. Danach markiert der nächste Druck auf eine Pane-Taste diese als Ziel für den gerade fokussierten Orca-Pane. Das ersetzt `hold`.
-- [ ] **Bild-Cache:** `Dictionary<slotId, byte[]>`. Bei `image` aktualisieren und das Neuzeichnen für genau diese Taste auslösen. Ohne Bild ein neutrales Platzhalter-Icon zeigen.
-- [ ] **Belegung melden:** Welche Slots auf dem Gerät liegen, an den Daemon (`keys`) senden. Falls das SDK das nicht verrät: alle 9 Slots als belegt melden. Der Daemon rendert dann unbenutzte Slots, das ist harmlos.
-- [ ] **Settings:** `saveSettings` über die Plugin-Settings-API des Logi SDK speichern und bei `hello` zurückgeben. `~/.orca-deck/mappings.json` bleibt die maßgebliche Kopie.
+  - ~~`Orca: Taste zuordnen`~~ entfällt: Das Keypad liefert Key-Down/Up (Phase 0), Hold funktioniert nativ.
+- [x] **Bild-Cache:** `ConcurrentDictionary<slotId, svg>`. Bei `image` aktualisieren und das Neuzeichnen für genau diese Taste auslösen. Ohne Bild ein neutrales Platzhalter-Icon zeigen.
+- [x] **Belegung melden:** Ein Slot gilt als belegt, sobald der Service ein 116-px-Bild für ihn anfragt (seit dem Laden). Welche Slots auf dem Gerät liegen, an den Daemon (`keys`) senden. Falls das SDK das nicht verrät: alle 9 Slots als belegt melden. Der Daemon rendert dann unbenutzte Slots, das ist harmlos.
+- [x] **Settings:** `saveSettings` über die Plugin-Settings-API des Logi SDK speichern und bei `hello` zurückgeben. `~/.orca-deck/mappings.json` bleibt die maßgebliche Kopie.
 - [ ] Icons und Metadaten: Plugin-Name „Orca Agent Keypad“, Icon im Recovio-Stil (keine Elgato- oder Orca-Logos).
 
 **Abnahme:** Auf dem echten Keypad zeigen die Tasten echte Orca-Panes. Ein Tap springt in den Pane, Orca kommt nach vorn. Ein Agent, der auf Input wartet, wird gelb oder orange.
+
+## Phase 3b – Orca-Agent-Chats als Panes (Nachtrag, ½–1 Tag)
+
+Anlass: Beim Hardware-Test liefen alle Agents als Orca-Chats, nicht in Terminals. Upstream kennt nur Terminal-Panes (siehe `docs/logi-findings.md` §8).
+
+- [ ] `adapter-cli` (`snapshotOne`): Für jeden Agent aus `worktree ps`, dessen `paneKey` mit `structured-agent-session-` beginnt und zu keinem Terminal gehört, einen `PaneInfo` erzeugen. Felder:
+  - `kind: 'chat'` (neues optionales Feld)
+  - `handle: ''`
+  - `title` = `conversationName` (sonst „<agent> chat“)
+  - `worktreeId`, `repo`, `branch` und `agentType` aus dem Worktree
+  - Der Status kommt schon heute über `statuses`.
+  - `worktreePsResponse` um `conversationName` erweitern.
+- [ ] `adapter-cli` (`focus`): Ein Chat wird immer über `terminal.reveal` (Runtime-Socket) fokussiert. Ohne Socket meldet `focus` sauber `ok: false` („Chat braucht die Runtime“), ohne CLI-Fallback.
+- [ ] `fake-orca`: Chats simulieren (`addChat`). `worktree ps` meldet sie, `terminal.reveal` auf ihren `paneKey` setzt den Fokus.
+- [ ] Tests: Unit-Tests im Adapter. `deck-host.test.ts` und `logi-sim.test.ts` je mit einem Chat: Status färbt die Taste, Tap ruft `terminal.reveal` auf.
+- [ ] Prüfen, ob Plugin A `agent.status.changed` auch für Chats bekommt. Wenn ja, kommt der Push sofort. Wenn nicht, greift der 2-s-Poll. Beides funktioniert, das Ergebnis kommt nach `docs/logi-findings.md`.
+- [ ] `replay-b` bleibt grün: Chats ändern nichts für Terminal-Panes. Die Stream-Deck-Version bekommt Chats automatisch mit.
+
+**Abnahme:** Auf dem echten Keypad liegt ein Orca-Chat. Er wird blau, solange der Agent arbeitet, gelb, wenn er auf dich wartet, und grün, wenn er fertig ist. Ein Tap öffnet genau diesen Chat und holt Orca nach vorn.
 
 ## Phase 4 – Plugin A anpassen (½ Tag)
 

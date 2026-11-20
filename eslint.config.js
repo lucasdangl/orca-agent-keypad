@@ -3,7 +3,14 @@ import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
   {
-    ignores: ['**/dist/**', '**/*.sdPlugin/bin/**', 'coverage/**', 'out/**'],
+    ignores: [
+      '**/dist/**',
+      '**/*.sdPlugin/bin/**',
+      'coverage/**',
+      'out/**',
+      'logi-plugin/**/bin/**',
+      'logi-plugin/**/obj/**',
+    ],
   },
   js.configs.recommended,
   {

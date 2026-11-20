@@ -166,6 +166,20 @@ Gemessen mit `NodeChild.cs` **[Test]**:
 - Auf dem Rechner ist schon ein Fremd-Plugin installiert („ClaudeConsole“). Es meldet beim Start „already loaded“. Das ist harmlos und betrifft uns nicht.
 - `ProcessButtonEvent2` und `GetCommandImage` laufen auf wechselnden Threadpool-Threads. Der Bild-Cache in Phase 3 muss threadsicher sein (`ConcurrentDictionary`).
 
+## 8. Orca-Agent-Sessions (Chats) — gefunden beim Hardware-Test in Phase 3
+
+Getestet am 2026-11-20 mit Orca 1.4.264 **[Test]**.
+
+- Agents, die Orca als **Chat** startet (der native Agent-Chat, `kind: "chat"`), sind **keine Terminal-Panes**.
+  - Sie fehlen in `terminal.list`, deshalb kennt upstream `orca-agent-deck` sie nicht.
+  - In `worktree ps` stehen sie trotzdem unter `agents` mit Status, und zwar mit `paneKey` = `structured-agent-session-<orcaSessionId>:<leafId>`, `conversationName` und `agentType`.
+- Runtime-Methode **`agent.list`** (das, was `orca agent list --json` zeigt): liefert Chats und Terminal-Agents.
+  - Felder: `orcaSessionId`, `kind` (`chat` | `terminal`), `agent`, `state` (`working` | `blocked` | `waiting` | `done`), `worktreeId`, `workspace`, `repo`, `hostId`, `paneKey`, `title`, `updatedAt`.
+  - `lastAssistantMessage` enthält Inhalt und darf **nie** geloggt werden.
+- **Hineinspringen:** `terminal.reveal { worktreeId, tabId, leafId, executionHostId }` mit `tabId:leafId` aus dem Chat-`paneKey` antwortet `navigated: true`. Orca zeigt danach genau diesen Chat-Tab (vom Nutzer bestätigt).
+  - Einen CLI-Befehl dafür gibt es nicht: `terminal switch` braucht einen Terminal-Handle. Chats gehen also nur über den Runtime-Socket.
+- Auf diesem Rechner laufen **alle** Agents als Chats. Die Terminal-Panes sind einfache Shells. Ohne Chat-Unterstützung zeigt das Keypad deshalb keinen einzigen Agent.
+
 ## Folge für Phase 2
 
 - Device-Protokoll: `image` trägt `svg: string` (UTF-8, wie `renderKey` es liefert) statt `png: base64`.
