@@ -369,25 +369,29 @@ export interface InfoModel {
   glyph?: InfoGlyph;
 }
 
-export type InfoGlyph = 'attention' | 'working';
+export type InfoGlyph = 'attention' | 'working' | 'done';
 
 /** Gradient (light top left, darker bottom right) and text colour of a glyph key per tone. */
 const GLYPH_PALETTE: Partial<Record<DeckState, { from: string; to: string; fg: string }>> = {
   unmapped: { from: '#3a3a3a', to: '#1f1f1f', fg: '#8c8c8c' },
   working: { from: '#a8c9ff', to: '#5a8dff', fg: '#0b1f3a' },
+  completed: { from: '#b6f2c9', to: '#3fc574', fg: '#0a2e1a' },
   needs_input: { from: '#ffe28f', to: '#ffb21f', fg: '#2b1d00' },
   awaiting_reply: { from: '#ffc98a', to: '#ff8a26', fg: '#2e1500' },
   error: { from: '#ffb8b8', to: '#ff6262', fg: '#3a0a0a' },
 };
 
-/** Glyphs on a 28 x 28 grid, drawn in `c`. */
-const GLYPHS: Record<InfoGlyph, (c: string) => string> = {
+/** Glyphs on a 28 x 28 grid, drawn in `c`; `bg` cuts shapes out of a filled glyph. */
+const GLYPHS: Record<InfoGlyph, (c: string, bg: string) => string> = {
   attention: (c) =>
     `<path d="M14 3 C9.2 3 6.5 6.6 6.5 11.5 V17 L3.5 21.5 H24.5 L21.5 17 V11.5 C21.5 6.6 18.8 3 14 3 Z" fill="${c}"/>` +
     `<path d="M10.5 24 A3.5 3.5 0 0 0 17.5 24 Z" fill="${c}"/>`,
   working: (c) =>
     `<circle cx="14" cy="14" r="10" fill="none" stroke="${c}" stroke-width="3.5" opacity="0.35"/>` +
     `<path d="M14 4 A10 10 0 0 1 24 14" fill="none" stroke="${c}" stroke-width="3.5" stroke-linecap="round"/>`,
+  done: (c, bg) =>
+    `<circle cx="14" cy="14" r="11" fill="${c}"/>` +
+    `<path d="M8.5 14.5 L12.5 18.5 L19.5 10" fill="none" stroke="${bg}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>`,
 };
 
 export function renderInfoKey(
@@ -447,9 +451,16 @@ function glyphKey(m: InfoModel, glyph: InfoGlyph, dark: boolean): string {
   return (
     `font-family="${FONT_STACK}" font-weight="700" fill="${fg}">` +
     bg +
-    `<g transform="translate(51 10) scale(1.5)" opacity="${m.tone === 'unmapped' ? 0.7 : 0.85}">${GLYPHS[glyph](fg)}</g>` +
+    `<g transform="translate(51 10) scale(1.5)" opacity="${m.tone === 'unmapped' ? 0.7 : 0.85}">${GLYPHS[glyph](fg, dark ? BLINK_OFF_BG : pal.to)}</g>` +
     `<text x="72" y="${vy}" font-size="${vs}" text-anchor="middle">${esc(m.value)}</text>`
   );
+}
+
+/** Done key content: how many agents finished and were not looked at yet (on a key or not). */
+export function doneInfo(done: number): InfoModel {
+  return done === 0
+    ? { tone: 'unmapped', value: '0', caption: 'nothing new', glyph: 'done' }
+    : { tone: 'completed', value: String(done), caption: 'done', glyph: 'done' };
 }
 
 /** Working key content: how many agents work right now (on a key or not). */

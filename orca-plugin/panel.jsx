@@ -228,6 +228,7 @@ const OTHER_KINDS = {
   status: 'the Agent Keypad status key',
   attention: 'the Agent Keypad attention key',
   working: 'the Agent Keypad working key',
+  done: 'the Agent Keypad done key',
   other: 'not an Agent Keypad key',
 };
 

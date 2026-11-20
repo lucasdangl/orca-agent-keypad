@@ -5,6 +5,7 @@ import {
   attentionBlinks,
   attentionInfo,
   workingInfo,
+  doneInfo,
   statusInfo,
   type SlotSettings,
 } from '@orca-agent-deck/core';
@@ -64,6 +65,7 @@ export class DeckHost {
   readonly status: InfoKeys;
   readonly attention: InfoKeys;
   readonly working: InfoKeys;
+  readonly done: InfoKeys;
   readonly doctor: Doctor;
   readonly runtime: RuntimeClient;
   private readonly o: DeckHostOptions;
@@ -161,11 +163,25 @@ export class DeckHost {
       async (c) => ((await c.pressWorking()) === 'failed' ? 'failed' : 'ok'),
       timers,
     );
+    this.done = new InfoKeys(
+      'done',
+      port,
+      () => this.controller(),
+      (c) => {
+        const ov = c.overview();
+        if (ov.mode === 'down' || ov.unsupported || ov.badResponse) return statusInfo(ov);
+        return doneInfo(ov.done);
+      },
+      // Number of agents that finished unread. Press = focus the one that finished first, which reads it.
+      async (c) => ((await c.pressDone()) === 'failed' ? 'failed' : 'ok'),
+      timers,
+    );
     port.onKeysChanged(() => {
       void this.panes.syncKeys().catch(this.logFailure('key update'));
       void this.status.syncKeys().catch(this.logFailure('key update'));
       void this.attention.syncKeys().catch(this.logFailure('key update'));
       void this.working.syncKeys().catch(this.logFailure('key update'));
+      void this.done.syncKeys().catch(this.logFailure('key update'));
     });
     port.onKey((slot, edge) => {
       const kind = port.keys().find((k) => k.slotId === slot)?.kind;
@@ -173,7 +189,12 @@ export class DeckHost {
         if (edge === 'down') this.panes.keyDown(slot);
         else void this.panes.keyUp(slot).catch(this.logFailure('press'));
       } else if (kind && edge === 'down') {
-        void { status: this.status, attention: this.attention, working: this.working }[kind]
+        void {
+          status: this.status,
+          attention: this.attention,
+          working: this.working,
+          done: this.done,
+        }[kind]
           .press(slot)
           .catch(this.logFailure('press'));
       }
@@ -391,6 +412,7 @@ export class DeckHost {
     this.status.stop();
     this.attention.stop();
     this.working.stop();
+    this.done.stop();
     this.stopWatch?.();
     await this.bridge.stop();
   }

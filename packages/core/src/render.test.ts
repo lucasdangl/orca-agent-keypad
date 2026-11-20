@@ -167,11 +167,14 @@ it('status and attention info keys', async () => {
 });
 
 it('draws Attention and Working as a bare number, Status with its caption', async () => {
-  const { statusInfo, attentionInfo, workingInfo, renderInfoKey } = await import('./render.ts');
+  const { statusInfo, attentionInfo, workingInfo, doneInfo, renderInfoKey } =
+    await import('./render.ts');
   const texts = (svg: string) => [...svg.matchAll(/<text[^>]*>([^<]*)<\/text>/g)].map((t) => t[1]);
   expect(texts(renderInfoKey(attentionInfo(2, 'needs_input', 1)))).toEqual(['2']);
   expect(texts(renderInfoKey(workingInfo(3)))).toEqual(['3']);
   expect(texts(renderInfoKey(workingInfo(0)))).toEqual(['0']);
+  expect(texts(renderInfoKey(doneInfo(4)))).toEqual(['4']);
+  expect(doneInfo(0)).toMatchObject({ tone: 'unmapped', glyph: 'done' });
   const status = statusInfo({ mode: 'live', version: '1.4.0', unsupported: false, hostsDown: 0 });
   expect(texts(renderInfoKey(status))).toEqual(['OK', 'live 1.4.0']);
 });

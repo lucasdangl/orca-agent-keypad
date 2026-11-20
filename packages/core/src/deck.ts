@@ -63,6 +63,8 @@ export interface Overview {
   offDeck: number;
   /** Number of agents working right now, on a key or not (the Working key). */
   working: number;
+  /** Number of agents that finished since the deck started and were not looked at yet (the Done key). */
+  done: number;
   /** Reads are served by the runtime socket (no CLI spawns). */
   fast: boolean;
 }
@@ -243,6 +245,11 @@ export class DeckController {
   };
   private attentionCursor = 0;
   private workingCursor = 0;
+  /**
+   * Panes whose completion was there when the deck first saw Orca, until they leave it. They count as read: the Done
+   * key shows what finished while you were away, not every chat that ever finished. Null until the first read.
+   */
+  private doneBaseline: Set<string> | null = null;
   private refreshedAt = 0;
   /** When the adapter was last read (see `OrcaAdapter.minReadIntervalMs`). */
   private polledAt = 0;
@@ -522,6 +529,17 @@ export class DeckController {
       if ((!pane.agentType && !synthetic && !endedBadly(pane)) || pane.orphaned) continue;
       const state = this.paneState(pane);
       if (state) this.acks.update(pane.paneKey, state, now);
+    }
+    if (!this.doneBaseline && this.orcaRunning) {
+      this.doneBaseline = new Set(
+        this.snapshot.panes
+          .filter((p) => this.acks.view(p.paneKey, now)?.from === 'completed')
+          .map((p) => p.paneKey),
+      );
+    }
+    // A pane leaves the baseline once it is no longer in the completion it had at the first read.
+    for (const key of this.doneBaseline ?? []) {
+      if (this.acks.view(key, now)?.from !== 'completed') this.doneBaseline?.delete(key);
     }
     if (!this.health.fast || !this.adapter.focusedPaneKey) {
       this.focusedKey = undefined;
@@ -851,6 +869,7 @@ export class DeckController {
       topState: urgent[0]?.state ?? null,
       offDeck: urgent.filter((u) => !onKeys.has(u.pane.paneKey)).length,
       working: this.workingPanes().length,
+      done: this.donePanes().length,
       fast: this.health.fast,
     };
   }
@@ -875,6 +894,33 @@ export class DeckController {
     const pane = working[this.workingCursor]?.pane;
     this.workingCursor++;
     return this.focus(pane);
+  }
+
+  /**
+   * Focuses the agent that finished first and was not looked at since; that reads it, so the next press goes to the
+   * next one.
+   */
+  async pressDone(): Promise<PressResult> {
+    const pane = this.donePanes()[0]?.pane;
+    if (!pane) return 'unmapped';
+    const r = await this.focus(pane);
+    if (r === 'focused') this.ack(pane.paneKey, 'press');
+    return r;
+  }
+
+  /**
+   * Agents that finished and are unread (not focused in Orca, not opened from the deck since), on a key or not; the
+   * one that finished first first. Completions from before the deck first saw Orca do not count.
+   */
+  private donePanes(): { pane: PaneInfo; state: DeckState }[] {
+    const now = Date.now();
+    return this.agentStates()
+      .filter((e) => {
+        if (e.state !== 'completed') return false;
+        const v = this.acks.view(e.pane.paneKey, now);
+        return !!v?.unread && !this.doneBaseline?.has(e.pane.paneKey);
+      })
+      .sort((a, b) => a.lastActivityAt - b.lastActivityAt);
   }
 
   /** Agents working right now, on a key or not; the one working longest first. */

@@ -33,7 +33,7 @@ export const keys = base('keys').extend({
     .array(
       z.object({
         slotId,
-        kind: z.enum(['pane', 'status', 'attention', 'working']),
+        kind: z.enum(['pane', 'status', 'attention', 'working', 'done']),
         /** 1-based, row-major key number on the device grid, when the plugin knows it (`slot-<n>` = n). */
         index: z.number().int().positive().optional(),
       }),

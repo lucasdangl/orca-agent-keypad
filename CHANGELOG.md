@@ -7,6 +7,7 @@ All notable changes to this project are documented here. Format: [Keep a Changel
 ### Added
 
 - **Working key** (`Orca Working`): how many agents work right now, on a key or not; a press jumps to the one working longest, again to the next.
+- **Done key** (`Orca Done`): how many agents finished and are unread, on a key or not; a press opens the one that finished first and reads it. Opening the chat in Orca reads it too. Completions from before the plugin started do not count.
 - **The Attention key blinks** while an agent needs you (twice a second, the count stays readable in the dark phase).
 
 ### Changed

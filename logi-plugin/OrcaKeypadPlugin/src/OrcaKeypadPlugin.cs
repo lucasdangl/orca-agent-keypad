@@ -18,6 +18,8 @@ namespace Loupedeck.OrcaKeypadPlugin
             public static OrcaAttentionCommand Attention { get; set; }
 
             public static OrcaWorkingCommand Working { get; set; }
+
+            public static OrcaDoneCommand Done { get; set; }
         }
 
         // Gets a value indicating whether this is an API-only plugin.
@@ -62,6 +64,10 @@ namespace Loupedeck.OrcaKeypadPlugin
             else if (slot == KeypadHub.WorkingSlot)
             {
                 Commands.Working?.Redraw();
+            }
+            else if (slot == KeypadHub.DoneSlot)
+            {
+                Commands.Done?.Redraw();
             }
             else if (KeypadHub.TryPaneIndex(slot, out var n))
             {

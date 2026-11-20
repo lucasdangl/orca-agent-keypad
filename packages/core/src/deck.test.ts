@@ -259,6 +259,41 @@ it('overview counts urgent panes and press cycles through them, oldest first', a
   expect(focused).toEqual(['h-b:1', 'h-a:1', 'h-b:1']);
 });
 
+it('Done counts unread completions since the first read, and a press opens and reads the one that finished first', async () => {
+  const snap: Snapshot = {
+    panes: [pane('a:1'), pane('b:1'), pane('c:1')],
+    // a:1 finished before the deck first saw Orca: it counts as read.
+    statuses: [{ paneKey: 'a:1', state: 'done', stateStartedAt: 10 }],
+    omittedHostIds: [],
+  };
+  const { a, focused } = fake(snap);
+  const d = new DeckController(a, new MappingStore());
+  await d.refresh([], { force: true });
+  expect(d.overview().done).toBe(0);
+  expect(await d.pressDone()).toBe('unmapped');
+
+  snap.statuses = [
+    { paneKey: 'a:1', state: 'done', stateStartedAt: 10 },
+    { paneKey: 'b:1', state: 'done', stateStartedAt: 300 },
+    { paneKey: 'c:1', state: 'done', stateStartedAt: 200 },
+  ];
+  await d.refresh([], { force: true });
+  expect(d.overview().done).toBe(2);
+  await d.pressDone();
+  expect(focused).toEqual(['h-c:1']);
+  expect(d.overview().done).toBe(1);
+  await d.pressDone();
+  expect(focused).toEqual(['h-c:1', 'h-b:1']);
+  expect(d.overview().done).toBe(0);
+
+  // a:1 works again and finishes: a new completion, unread.
+  snap.statuses = [{ paneKey: 'a:1', state: 'working', stateStartedAt: 400 }];
+  await d.refresh([], { force: true });
+  snap.statuses = [{ paneKey: 'a:1', state: 'done', stateStartedAt: 500 }];
+  await d.refresh([], { force: true });
+  expect(d.overview().done).toBe(1);
+});
+
 it('overview is down and attention is empty when Orca is not running', async () => {
   const snap: Snapshot = { panes: [pane('a:1')], statuses: [], omittedHostIds: [] };
   const d = new DeckController(fake(snap, false).a, new MappingStore());

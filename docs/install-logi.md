@@ -74,8 +74,9 @@ In Options+ das Keypad öffnen. Unter **Orca Agent Keypad** gibt es:
 - **Orca Status**: Verbindung zu Orca und Setup-Prüfung. Grün mit „OK“, wenn alles läuft. Drücken liest Orca sofort neu ein.
 - **Orca Attention**: Wie viele Agents auf dich warten. Die Taste **blinkt**, solange einer wartet. Drücken springt zum Agent, der am längsten wartet, jeder weitere Druck zum nächsten.
 - **Orca Working**: Wie viele Agents gerade arbeiten. Drücken springt zu dem, der am längsten arbeitet, jeder weitere Druck zum nächsten.
+- **Orca Done**: Wie viele Agents fertig sind, deren Ergebnis du noch nicht angesehen hast. Drücken öffnet den, der zuerst fertig war, und zählt ihn als gelesen. Als gelesen zählt ein Agent auch, wenn du seinen Chat in Orca selbst öffnest. Was schon fertig war, als das Plugin gestartet ist, zählt nicht mit.
 
-Attention und Working zählen **alle** Agents in Orca, auch Chats, die auf keiner Pane-Taste liegen. Wer nicht jeden Chat einzeln auf eine Taste legen will, kommt mit diesen beiden Tasten plus Status aus.
+Attention, Working und Done zählen **alle** Agents in Orca, auch Chats, die auf keiner Pane-Taste liegen. Wer nicht jeden Chat einzeln auf eine Taste legen will, kommt mit diesen Tasten aus.
 
 Options+ schaltet das Keypad-Profil um, wenn Orca vorn ist. Leg die Tasten deshalb ins Profil **Orca** und ins **Standardprofil**, sonst verschwinden sie, sobald eine andere App vorn ist.
 
