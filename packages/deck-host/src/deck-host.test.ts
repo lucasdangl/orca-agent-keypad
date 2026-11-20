@@ -286,7 +286,7 @@ describe('deck-host answer pad', () => {
     await read();
     expect(port.images.get('fake:slot-1')).toContain('data-label="Esc"');
     expect(port.images.get('fake:slot-4')).toContain('>Ship it<');
-    expect(port.images.get('fake:slot-7')).toContain('fill="#1c1c1c"'); // no third option
+    expect(port.images.get('fake:slot-7')).toContain('fill="#141414"'); // no third option
 
     const raised = raise.mock.calls.length;
     port.key('fake:slot-4', 'down');

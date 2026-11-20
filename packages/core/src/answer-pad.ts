@@ -40,15 +40,41 @@ const FONT = 'Helvetica, Arial, Liberation Sans, DejaVu Sans, sans-serif';
 const esc = (s: string) =>
   s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c] ?? c);
 
-const NAV = { bg: '#26303d', fg: '#e8edf3' };
-const STYLE: Partial<Record<AnswerKeyCode, { bg: string; fg: string }>> = {
-  Escape: { bg: '#4a2326', fg: '#ffb3b3' },
-  Return: { bg: '#1f4a33', fg: '#b6f2c9' },
+/** Navigation keys: dark gradient, a drawn glyph in the key's accent colour and its name below. */
+const NAV_BG = { from: '#2b2e33', to: '#191b1e' };
+const NAV_NAME = '#7d838b';
+const ACCENT: Partial<Record<AnswerKeyCode, string>> = {
+  Escape: '#b98783',
+  Space: '#b9a77c',
+  ArrowUp: '#8796ab',
+  ArrowDown: '#8796ab',
+  Return: '#7fa8a1',
 };
-const OPTION = { from: '#ffe28f', to: '#ffb21f', fg: '#2b1d00' };
-const OFF = { bg: '#1c1c1c', fg: '#4a4a4a' };
+const stroke = (c: string, w = 12) =>
+  `fill="none" stroke="${c}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round"`;
+/** Glyphs on the 144 grid, centred around y = 64. */
+const NAV_GLYPH: Partial<Record<AnswerKeyCode, (c: string) => string>> = {
+  Escape: (c) => `<path d="M52 44 L92 84 M92 44 L52 84" ${stroke(c)}/>`,
+  Space: (c) => `<path d="M38 56 V80 H106 V56" ${stroke(c, 11)}/>`,
+  ArrowUp: (c) => `<path d="M42 80 L72 50 L102 80" ${stroke(c, 13)}/>`,
+  ArrowDown: (c) => `<path d="M42 50 L72 80 L102 50" ${stroke(c, 13)}/>`,
+  Return: (c) =>
+    `<path d="M102 38 V66 Q102 80 88 80 H50" ${stroke(c, 11)}/><path d="M64 64 L48 80 L64 96" ${stroke(c, 11)}/>`,
+};
+const OPTION = { from: '#cbb88a', to: '#a68d58', fg: '#26200f' };
+const OFF = { bg: '#141414', fg: '#3a3a3a' };
 
-/** One answer pad key as SVG (144 x 144 units, like `renderKey`). `label` is the option's text, if known. */
+const gradient = (from: string, to: string) =>
+  `<rect width="144" height="144" fill="${to}"/>` +
+  `<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${from}"/>` +
+  `<stop offset="1" stop-color="${to}"/></linearGradient></defs><rect width="144" height="144" fill="url(#g)"/>`;
+
+/** A digit on a key cap: rounded square in `cap`, digit in `fg`, its top left corner at (x, y). */
+const keyCap = (digit: string, x: number, y: number, s: number, cap: string, fg: string) =>
+  `<rect x="${x}" y="${y}" width="${s}" height="${s}" rx="${s / 4}" fill="${cap}"/>` +
+  `<text x="${x + s / 2}" y="${(y + s * 0.72).toFixed(1)}" font-size="${Math.round(s * 0.62)}" text-anchor="middle" fill="${fg}">${digit}</text>`;
+
+/** One answer pad key as SVG (144 x 144 units, like `renderKey`). The digit keys show the option's text, if known. */
 export function renderAnswerKey(
   spec: AnswerKeySpec,
   options: readonly string[],
@@ -61,44 +87,44 @@ export function renderAnswerKey(
     return (
       head +
       `<rect width="144" height="144" fill="${OFF.bg}"/>` +
-      `<text x="72" y="92" font-size="56" text-anchor="middle" fill="${OFF.fg}">${esc(spec.name)}</text></svg>`
+      `<rect x="44" y="44" width="56" height="56" rx="14" fill="none" stroke="${OFF.fg}" stroke-width="3"/>` +
+      `<text x="72" y="84" font-size="34" text-anchor="middle" fill="${OFF.fg}">${spec.name}</text></svg>`
     );
   }
   if (spec.option) {
     const text = options[spec.option - 1];
-    const bg =
-      `<rect width="144" height="144" fill="${OPTION.to}"/>` +
-      `<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${OPTION.from}"/>` +
-      `<stop offset="1" stop-color="${OPTION.to}"/></linearGradient></defs><rect width="144" height="144" fill="url(#g)"/>`;
-    if (!text) {
+    if (!text)
       return (
         head +
-        bg +
-        `<text x="72" y="96" font-size="64" text-anchor="middle" fill="${OPTION.fg}">${spec.name}</text></svg>`
+        gradient(OPTION.from, OPTION.to) +
+        keyCap(spec.name, 32, 32, 80, OPTION.fg, OPTION.from) +
+        `</svg>`
       );
-    }
     const { lines, size: fs } = layoutLabel(text);
-    const body = lines
-      .slice(0, 3)
+    const shown = lines.slice(0, 3);
+    const lh = fs + 4;
+    // The text block sits centred in the space under the key cap.
+    const top = 58 + (80 - shown.length * lh) / 2 + fs * 0.8;
+    const body = shown
       .map(
         (l, i) =>
-          `<text x="72" y="${(78 + i * (fs + 4)).toFixed(1)}" font-size="${fs}" font-weight="600" text-anchor="middle" fill="${OPTION.fg}">${esc(l)}</text>`,
+          `<text x="72" y="${(top + i * lh).toFixed(1)}" font-size="${fs}" text-anchor="middle" fill="${OPTION.fg}">${esc(l)}</text>`,
       )
       .join('');
     return (
       head +
-      bg +
-      `<circle cx="72" cy="30" r="18" fill="${OPTION.fg}" opacity="0.85"/>` +
-      `<text x="72" y="39" font-size="26" text-anchor="middle" fill="${OPTION.from}">${spec.name}</text>` +
+      gradient(OPTION.from, OPTION.to) +
+      keyCap(spec.name, 52, 10, 40, OPTION.fg, OPTION.from) +
       body +
       `</svg>`
     );
   }
-  const pal = STYLE[spec.code] ?? NAV;
-  const big = spec.name.length <= 1;
+  const accent = ACCENT[spec.code] ?? '#e8edf3';
   return (
     head +
-    `<rect width="144" height="144" fill="${pal.bg}"/>` +
-    `<text x="72" y="${big ? 100 : 86}" font-size="${big ? 72 : 34}" text-anchor="middle" fill="${pal.fg}">${esc(spec.name)}</text></svg>`
+    gradient(NAV_BG.from, NAV_BG.to) +
+    `<rect x="4" y="4" width="136" height="136" rx="12" fill="none" stroke="${accent}" stroke-width="2" opacity="0.25"/>` +
+    (NAV_GLYPH[spec.code]?.(accent) ?? '') +
+    `<text x="72" y="124" font-size="17" text-anchor="middle" fill="${NAV_NAME}">${esc(spec.name === '↑' ? 'Up' : spec.name === '↓' ? 'Down' : spec.name)}</text></svg>`
   );
 }

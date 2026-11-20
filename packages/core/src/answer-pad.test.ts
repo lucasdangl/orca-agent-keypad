@@ -19,8 +19,9 @@ it('shows the option text on its digit key and dims options the question does no
   const opts = ['Yes, ship it', 'No'];
   expect(renderAnswerKey(ANSWER_LAYOUT[4]!, opts)).toContain('>Yes, ship it<');
   expect(answerKeyLive(ANSWER_LAYOUT[7]!, opts)).toBe(false);
-  expect(renderAnswerKey(ANSWER_LAYOUT[7]!, opts)).toContain('fill="#1c1c1c"');
+  expect(renderAnswerKey(ANSWER_LAYOUT[7]!, opts)).toContain('fill="#141414"');
   // Options unknown (a permission prompt): every digit stays live.
   expect(answerKeyLive(ANSWER_LAYOUT[8]!, [])).toBe(true);
   expect(renderAnswerKey(ANSWER_LAYOUT[1]!, opts)).toContain('>Esc<');
+  expect(renderAnswerKey(ANSWER_LAYOUT[3]!, opts)).toContain('>Up<');
 });
