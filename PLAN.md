@@ -161,9 +161,11 @@ Anlass: Beim Hardware-Test liefen alle Agents als Orca-Chats, nicht in Terminals
 
 - [x] Hold-zum-Belegen bei Chats: Der Layout-Baum kennt keine Chats. `focusedPaneKey` fragt deshalb `session.tabs.list` (nur über den Runtime-Socket und nur, wenn der Worktree Chats hat).
 
-**Abnahme:** Auf dem echten Keypad liegt ein Orca-Chat. Er wird blau, solange der Agent arbeitet, gelb, wenn er auf dich wartet, und grün, wenn er fertig ist. Ein Tap öffnet genau diesen Chat und holt Orca nach vorn.
+**Abnahme (bestanden am 2026-11-20 auf dem echten Keypad):** Auf dem echten Keypad liegt ein Orca-Chat. Er wird blau, solange der Agent arbeitet, gelb, wenn er auf dich wartet, und grün, wenn er fertig ist. Ein Tap öffnet genau diesen Chat und holt Orca nach vorn.
 
 ## Phase 4 – Plugin A anpassen (½ Tag)
+
+- [ ] Der Doctor bzw. die Status-Taste meldet ein fehlendes Plugin A deutlich, statt dass Halten still nichts tut. Gefunden beim Hardware-Test in Phase 3b.
 
 - [ ] In `orca-plugin/orca-plugin.json`: `id` → `agent-keypad`, `name` → „Agent Keypad for Orca“, Beschreibungen und Tooltips „Stream Deck“ → „Logi Keypad“. Den Shortcut `Mod+Alt+K` beibehalten oder ändern.
 - [ ] Die Plugin-Keys, die B bei `openPanel` probiert (`1am.agent-deck`, `local.agent-deck`), auf den neuen Key umstellen (`local.agent-keypad` bzw. `<owner>.agent-keypad`). Danach in `adapter-runtime` / `plugin.ts` → `deck-host` suchen.

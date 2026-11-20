@@ -183,6 +183,14 @@ Getestet am 2026-11-20 mit Orca 1.4.264 **[Test]**.
   - Daneben gibt es `agentSession.reveal`. Ungetestet, weil `terminal.reveal` reicht.
 - Ein Chat ohne Agent-Eintrag (noch nie gelaufen) fehlt in `worktree ps` und bekommt keinen Pane **[Test]**.
 - **Gebaut (Phase 3b):** Ein Daemon auf dem echten Keypad listet beide laufenden Chats als Panes und erkennt den Chat, der vorn ist, als fokussiert **[Test]**.
+- **Hardware-Test am 2026-11-20** **[Test]**:
+  - Chat-Tasten über Halten und das Orca-Panel belegt.
+  - Ein Tap öffnet den Chat, der Fokus dauert rund 55 ms.
+  - Der Nutzer hat bestätigt, dass es funktioniert.
+- **Voraussetzung:** Plugin A muss in Orca installiert sein.
+  - Ohne Plugin A öffnet Halten nichts, im Log steht dann `open panel: refused`. Der Doctor bzw. die Status-Taste sollte das klar melden (Phase 4/5).
+  - Für die Entwicklung: `orca plugin dev load orca-plugin` mit Freigabe (Plugin-Key `local.agent-deck`).
+- Offen: Ob Orca `agent.status.changed` für Chats sendet, zeigen die Logs nicht. Die Farben stimmen trotzdem, notfalls über den 2-s-Poll.
 - Auf diesem Rechner laufen **alle** Agents als Chats. Die Terminal-Panes sind einfache Shells. Ohne Chat-Unterstützung zeigt das Keypad deshalb keinen einzigen Agent.
 
 ## Folge für Phase 2
