@@ -96,6 +96,25 @@ export function compareVersions(a: string, b: string): number {
   return 0;
 }
 
+/** Option labels of a pending structured question: the first question's, at most 4; null when there is none. */
+export function questionOptionsOf(
+  a: z.infer<typeof agentEntry>,
+  state: AgentRawState,
+): string[] | null {
+  if (!a.interactivePrompt || state === 'done') return null;
+  try {
+    const p = JSON.parse(a.interactivePrompt) as {
+      questions?: { options?: { label?: unknown }[] }[];
+    };
+    const labels = (p.questions?.[0]?.options ?? [])
+      .map((o) => (typeof o?.label === 'string' ? o.label.trim() : ''))
+      .slice(0, 4);
+    return labels.length ? labels : null;
+  } catch {
+    return null;
+  }
+}
+
 /** Does this agent entry ask the user something? Keeps the verdict, drops the text. */
 export function awaitingOf(
   a: z.infer<typeof agentEntry>,
@@ -302,6 +321,7 @@ export class CliAdapter implements OrcaAdapter {
           agentType: a.agentType ?? null,
           stateStartedAt: a.stateStartedAt,
           awaiting: awaitingOf(a, state, a.mainAgent?.outcome ?? null),
+          questionOptions: questionOptionsOf(a, state),
         });
       }
     }

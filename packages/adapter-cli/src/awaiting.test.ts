@@ -106,3 +106,33 @@ describe('snapshot carries the verdict, never the text', () => {
     expect(JSON.stringify(snap)).not.toContain('Finished');
   });
 });
+
+describe('questionOptionsOf', () => {
+  const prompt = (o: unknown) => JSON.stringify(o);
+  it('takes the first question’s option labels, at most 4', async () => {
+    const { questionOptionsOf } = await import('./index.ts');
+    const options = ['A', 'B', 'C', 'D', 'E'].map((label) => ({ label, description: 'x' }));
+    const p = prompt({
+      questions: [
+        { question: 'Which?', options },
+        { question: 'Other', options: [] },
+      ],
+    });
+    expect(questionOptionsOf(entry({ interactivePrompt: p }), 'blocked')).toEqual([
+      'A',
+      'B',
+      'C',
+      'D',
+    ]);
+  });
+  it('is null without a question, after the turn, and for a broken prompt', async () => {
+    const { questionOptionsOf } = await import('./index.ts');
+    const p = prompt({ questions: [{ question: 'Q', options: [{ label: 'A' }] }] });
+    expect(questionOptionsOf(entry(), 'blocked')).toBeNull();
+    expect(questionOptionsOf(entry({ interactivePrompt: p }), 'done')).toBeNull();
+    expect(
+      questionOptionsOf(entry({ interactivePrompt: '{"approval":{}}' }), 'blocked'),
+    ).toBeNull();
+    expect(questionOptionsOf(entry({ interactivePrompt: '{not json' }), 'blocked')).toBeNull();
+  });
+});

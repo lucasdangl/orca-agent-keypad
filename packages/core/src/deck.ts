@@ -44,6 +44,13 @@ const FOCUS_FROM_SNAPSHOT_MS = 300;
 
 export type HealthMode = 'live' | 'degraded' | 'down';
 
+/** See `DeckController.answerPad`. */
+export interface AnswerPad {
+  paneKey: string;
+  /** Labels of the question's options (at most 4); empty for a permission prompt or an unknown question. */
+  options: string[];
+}
+
 /** What the Status and Attention keys show. */
 export interface Overview {
   mode: HealthMode;
@@ -872,6 +879,23 @@ export class DeckController {
       done: this.donePanes().length,
       fast: this.health.fast,
     };
+  }
+
+  /**
+   * The answer pad: while the pane Orca has in front waits for an answer (a question or a permission prompt), the Pane
+   * keys turn into keys that answer it with key presses. Null otherwise, and when Orca cannot say what is in front.
+   */
+  answerPad(): AnswerPad | null {
+    if (!this.orcaRunning || !this.focusedKey) return null;
+    const pane = this.snapshot.panes.find((p) => p.paneKey === this.focusedKey);
+    if (!pane) return null;
+    const status = this.snapshot.statuses.find((e) => e.paneKey === pane.paneKey);
+    const state = this.paneState(pane);
+    // A permission prompt, or a structured question; not a turn that ended with a question in its text.
+    const asks =
+      state === 'needs_input' || (state === 'awaiting_reply' && status?.awaiting === 'question');
+    if (!asks) return null;
+    return { paneKey: pane.paneKey, options: status?.questionOptions ?? [] };
   }
 
   /** Focuses the most urgent pane; repeated presses walk down the list and wrap around. */

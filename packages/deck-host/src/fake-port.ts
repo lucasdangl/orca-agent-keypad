@@ -1,4 +1,9 @@
-import { decodeKey, type DeckHostInfo, type DecodedKey } from '@orca-agent-deck/core';
+import {
+  decodeKey,
+  type AnswerKeyCode,
+  type DeckHostInfo,
+  type DecodedKey,
+} from '@orca-agent-deck/core';
 import type { DeviceInfo, DevicePort, KeyBinding, KeyEdge } from './port.ts';
 
 /**
@@ -13,6 +18,8 @@ export class FakePort implements DevicePort {
   /** Last image per slot. */
   readonly images = new Map<string, string>();
   readonly alerts: string[] = [];
+  /** Key presses sent by the answer pad. */
+  readonly sentKeys: AnswerKeyCode[] = [];
   readonly logs: string[] = [];
   stored: Record<string, unknown>;
 
@@ -68,6 +75,9 @@ export class FakePort implements DevicePort {
   }
   async showAlert(slotId: string): Promise<void> {
     this.alerts.push(slotId);
+  }
+  async sendKey(code: AnswerKeyCode): Promise<void> {
+    this.sentKeys.push(code);
   }
   onKey(cb: (slot: string, edge: KeyEdge) => void): void {
     this.keyCbs.push(cb);

@@ -84,6 +84,16 @@ Options+ schaltet das Keypad-Profil um, wenn Orca vorn ist. Leg die Tasten desha
 
 Pane-Tasten füllen sich von selbst: Jede freie Taste bekommt einen Agent-Chat oder ein Agent-Pane, das noch auf keiner Taste liegt, und behält es, solange es existiert. Neue Chats rücken in freie Tasten nach. Wird ein Chat geschlossen, wird seine Taste nach kurzer Zeit frei. Eine Taste, die du im Panel mit **Unmap** leerst, bleibt dauerhaft leer.
 
+**Antwort-Modus:** Steht in Orca ein Chat vorne, der eine Frage stellt oder eine Freigabe will, werden die Pane-Tasten zu Antworttasten. Ein Druck schickt den Tastendruck an Orca:
+
+| | | |
+|---|---|---|
+| Esc | Select (Leertaste) | ↑ |
+| 1 | 2 | ↓ |
+| 3 | 4 | Enter |
+
+Die Tasten 1–4 zeigen den Text der jeweiligen Option. Optionen, die die Frage nicht hat, sind dunkel. Ist die Frage beantwortet, zeigen die Tasten wieder die Chats. Die Belegung richtet sich nach der Position der Taste (Slot 1 = oben links). Für die Tastendrücke braucht der Logi Plugin Service unter macOS eventuell die Freigabe unter **Datenschutz & Sicherheit → Bedienungshilfen**.
+
 Von Hand belegen geht so:
 
 1. Den Chat oder das Pane in Orca nach vorn holen.

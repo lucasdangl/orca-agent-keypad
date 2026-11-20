@@ -48,9 +48,18 @@ export const ready = base('ready').extend({ daemonVersion: z.string() });
 export const image = base('image').extend({ slotId, svg: z.string() });
 export const saveSettings = base('saveSettings').extend({ settings: z.record(z.unknown()) });
 export const alert = base('alert').extend({ slotId });
+export const sendKey = base('sendKey').extend({
+  key: z.enum(['Escape', 'Space', 'ArrowUp', 'ArrowDown', 'Return', '1', '2', '3', '4']),
+});
 
 export const messageFromLogi = z.discriminatedUnion('type', [hello, keys, key, deviceState]);
-export const messageToLogi = z.discriminatedUnion('type', [ready, image, saveSettings, alert]);
+export const messageToLogi = z.discriminatedUnion('type', [
+  ready,
+  image,
+  saveSettings,
+  alert,
+  sendKey,
+]);
 export type MessageFromLogi = z.infer<typeof messageFromLogi>;
 export type MessageToLogi = z.infer<typeof messageToLogi>;
 export type Hello = z.infer<typeof hello>;

@@ -9,6 +9,7 @@ export * from './registry.ts';
 export * from './mapping.ts';
 export * from './shortid.ts';
 export * from './deck.ts';
+export * from './answer-pad.ts';
 export * from './render.ts';
 export * from './gesture.ts';
 export * from './keynumber.ts';

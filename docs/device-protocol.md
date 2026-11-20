@@ -27,6 +27,7 @@ Reference for the messages between **Logi**, the C# plugin that the Logi Plugin 
 | `image` | `slotId: string`, `svg: string` | New image for a key: the SVG of `renderKey` / `renderInfoKey`, 144 x 144 units with `width`/`height` 144. Logi sets `width`/`height` to the size the service asks for and shows it with `BitmapImage.FromSvg`. Only changed images are sent, at most one per key every 100 ms. |
 | `saveSettings` | `settings: object` | Store this object in the plugin settings and send it back in the next `hello`. A cache only: `~/.orca-deck/mappings.json` is the master copy of the mappings. |
 | `alert` | `slotId: string` | Short failure feedback on a key (a press that could not focus its pane). |
+| `sendKey` | `key: "Escape" \| "Space" \| "ArrowUp" \| "ArrowDown" \| "Return" \| "1" \| "2" \| "3" \| "4"` | Press this key in the app in front (the answer pad, while the chat in front in Orca waits for an answer). Logi sends it with `ClientApplication.SendKeyboardShortcut`, without modifiers. |
 
 ## Versioning
 

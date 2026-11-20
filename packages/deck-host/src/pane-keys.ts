@@ -5,6 +5,10 @@ import {
   keyNumber,
   spinnerAdvances,
   renderKey,
+  renderAnswerKey,
+  answerKeyLive,
+  ANSWER_LAYOUT,
+  type AnswerPad,
   type DeckController,
   type LayoutCell,
   type SlotView,
@@ -68,6 +72,10 @@ export class PaneKeys {
   private readonly panel: PanelPicker;
   private readonly port: DevicePort;
   private readonly timers: ReturnType<typeof setInterval>[] = [];
+  /** The answer pad while the pane in front in Orca waits for an answer (see `DeckController.answerPad`). */
+  private pad: AnswerPad | null = null;
+  /** Keys pressed while the pad was up: their key up must not focus a pane. */
+  private readonly padPressed = new Set<string>();
   /** Runs after every refresh (the Stream Deck Property Inspector re-sends its pane list from here). */
   onRefreshed: (() => Promise<void>) | null = null;
 
@@ -167,11 +175,34 @@ export class PaneKeys {
   }
 
   keyDown(slotId: string): void {
+    const spec = this.padKey(slotId);
+    if (spec) {
+      this.padPressed.add(slotId);
+      if (!answerKeyLive(spec, this.pad?.options ?? [])) return;
+      // Sent on key down, like a keyboard. Never logs the option's text.
+      this.port.log('info', `answer pad: ${spec.code}`);
+      void this.port
+        .sendKey?.(spec.code)
+        .catch((e: unknown) =>
+          this.port.log('warn', `answer pad: ${spec.code} not sent: ${String(e)}`),
+        );
+      // The answer changes the agent's state: read Orca again soon so the pad goes away.
+      setTimeout(() => void this.refresh(), 400);
+      return;
+    }
     this.gestures.keyDown(slotId);
+  }
+
+  /** The answer pad key on this slot, while the pad is up. */
+  private padKey(slotId: string) {
+    if (!this.pad || !this.port.sendKey) return undefined;
+    const n = this.indexes.get(slotId);
+    return n === undefined ? undefined : ANSWER_LAYOUT[n];
   }
 
   /** A tap focuses; a hold already acted while the key was down. */
   async keyUp(id: string): Promise<void> {
+    if (this.padPressed.delete(id)) return;
     if (!this.gestures.keyUp(id)) return;
     const c = await this.controller();
     // With the Orca panel open for mapping a tap selects the key there (its details open).
@@ -302,6 +333,10 @@ export class PaneKeys {
           this.again = false;
           const views = await (await this.controller()).refresh([...this.keys.keys()]);
           for (const [id, v] of views) this.views.set(id, v);
+          const pad = this.port.sendKey && this.ctl ? this.ctl.answerPad() : null;
+          if (!!pad !== !!this.pad)
+            this.port.log('info', pad ? 'answer pad up' : 'answer pad down');
+          this.pad = pad;
           await this.repaint();
           if (this.onRefreshed && this.ctl) await this.onRefreshed();
         } while (this.again);
@@ -324,10 +359,13 @@ export class PaneKeys {
         const hint = this.hints.get(id);
         if (hint && hint.until <= now) this.hints.delete(id);
         const shown = hint && hint.until > now && hint.text ? { ...v, label: hint.text } : v;
-        const svg = renderKey(
-          { ...shown, keyNumber: this.numbers.get(id) },
-          { size: 144, spin: this.spin },
-        );
+        const spec = this.padKey(id);
+        const svg = spec
+          ? renderAnswerKey(spec, this.pad?.options ?? [])
+          : renderKey(
+              { ...shown, keyNumber: this.numbers.get(id) },
+              { size: 144, spin: this.spin },
+            );
         if (this.sent.get(id) === svg) return;
         this.sent.set(id, svg);
         await this.port.setImage(id, svg);

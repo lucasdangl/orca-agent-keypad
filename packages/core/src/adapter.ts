@@ -50,6 +50,11 @@ export interface PaneStatusEvent {
    * text itself never leaves the adapter.
    */
   awaiting?: AwaitingKind | null;
+  /**
+   * Labels of the options of a pending structured question (its first question, at most 4), for the answer pad on the
+   * keys. Shown on the device only: never logged, never sent anywhere else.
+   */
+  questionOptions?: string[] | null;
 }
 
 export interface HostInfo {

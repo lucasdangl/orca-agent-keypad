@@ -1,4 +1,4 @@
-import type { DeckHostInfo } from '@orca-agent-deck/core';
+import type { AnswerKeyCode, DeckHostInfo } from '@orca-agent-deck/core';
 
 /** What one of our keys is for. */
 export type KeyKind = 'pane' | 'status' | 'attention' | 'working' | 'done';
@@ -58,4 +58,9 @@ export interface DevicePort {
   log(level: 'info' | 'warn', msg: string): void;
   /** Which host app runs us, for the Setup doctor and the log. */
   host(): DeckHostInfo;
+  /**
+   * Sends a key press to the app in front (the answer pad). Absent where the device app cannot: the Pane keys then
+   * never turn into the answer pad.
+   */
+  sendKey?(code: AnswerKeyCode): Promise<void>;
 }

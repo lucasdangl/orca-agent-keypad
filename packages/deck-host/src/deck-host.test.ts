@@ -255,3 +255,54 @@ describe('deck-host Attention and Working keys', () => {
     expect(svg(ATT)).not.toContain('fill="#1c1c1c"');
   });
 });
+
+// The answer pad: while the chat in front in Orca waits for an answer, the Pane keys send key presses to Orca.
+describe('deck-host answer pad', () => {
+  const opts = (labels: string[]) =>
+    JSON.stringify({
+      questions: [{ question: 'Which?', options: labels.map((label) => ({ label })) }],
+    });
+  const read = async () => {
+    await (await host.controller()).refresh([], { force: true });
+    await host.panes.refresh();
+  };
+
+  beforeEach(async () => {
+    port.setKeys(port.paneKeys(9));
+    await host.panes.syncKeys();
+  });
+
+  it('turns the Pane keys into the pad while the chat in front asks, and back after the answer', async () => {
+    advance(s, 1000);
+    setAgent(s, 'c', 'blocked', 'AskUserQuestion', {
+      interactivePrompt: opts(['Ship it', 'Wait']),
+    });
+    await read();
+    // Not in front yet: the keys stay Pane keys.
+    expect(port.images.get('fake:slot-1')).not.toContain('data-state="answer"');
+
+    const chat = s.panes.find((p) => p.key === 'c')!;
+    reveal(s, chat.tabId, chat.leafId);
+    await read();
+    expect(port.images.get('fake:slot-1')).toContain('data-label="Esc"');
+    expect(port.images.get('fake:slot-4')).toContain('>Ship it<');
+    expect(port.images.get('fake:slot-7')).toContain('fill="#1c1c1c"'); // no third option
+
+    const raised = raise.mock.calls.length;
+    port.key('fake:slot-4', 'down');
+    port.key('fake:slot-4', 'up');
+    port.key('fake:slot-7', 'down'); // dimmed: nothing sent
+    port.key('fake:slot-7', 'up');
+    port.key('fake:slot-9', 'down');
+    port.key('fake:slot-9', 'up');
+    expect(port.sentKeys).toEqual(['1', 'Return']);
+    // The key up of a pad key focuses no pane.
+    await new Promise((r) => setTimeout(r, 50));
+    expect(raise.mock.calls.length).toBe(raised);
+
+    advance(s, 1000);
+    setAgent(s, 'c', 'working');
+    await read();
+    expect(port.images.get('fake:slot-1')).not.toContain('data-state="answer"');
+  });
+});

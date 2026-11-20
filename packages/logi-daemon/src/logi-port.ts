@@ -1,6 +1,6 @@
 import { createInterface } from 'node:readline';
 import type { Readable, Writable } from 'node:stream';
-import type { DeckHostInfo, DeckOs } from '@orca-agent-deck/core';
+import type { AnswerKeyCode, DeckHostInfo, DeckOs } from '@orca-agent-deck/core';
 import type { DeviceInfo, DevicePort, KeyBinding, KeyEdge } from '@orca-agent-deck/deck-host';
 import {
   DEVICE_PROTOCOL_VERSION,
@@ -178,6 +178,9 @@ export class LogiPort implements DevicePort {
 
   async showAlert(slotId: string): Promise<void> {
     this.send({ v: 1, type: 'alert', slotId });
+  }
+  async sendKey(code: AnswerKeyCode): Promise<void> {
+    this.send({ v: 1, type: 'sendKey', key: code });
   }
   onKey(cb: (slot: string, edge: KeyEdge) => void): void {
     this.keyCbs.push(cb);

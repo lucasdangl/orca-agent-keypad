@@ -145,6 +145,9 @@ namespace Loupedeck.OrcaKeypadPlugin
                     _ = System.Threading.Tasks.Task.Delay(AlertTime + TimeSpan.FromMilliseconds(50)).ContinueWith(_ => this.Redraw(slot));
                     return;
                 }
+                case "sendKey":
+                    this.SendKey((String)m["key"]);
+                    return;
                 case "saveSettings":
                     if (m["settings"] is JsonObject s)
                     {
@@ -153,6 +156,37 @@ namespace Loupedeck.OrcaKeypadPlugin
                     return;
                 default:
                     return;
+            }
+        }
+
+        // The answer pad: one key press to the app in front (Orca), without modifiers. The key name is logged, never text.
+        private void SendKey(String key)
+        {
+            VirtualKeyCode? code = key switch
+            {
+                "Escape" => VirtualKeyCode.Escape,
+                "Space" => VirtualKeyCode.Space,
+                "ArrowUp" => VirtualKeyCode.ArrowUp,
+                "ArrowDown" => VirtualKeyCode.ArrowDown,
+                "Return" => VirtualKeyCode.Return,
+                "1" => VirtualKeyCode.Key1,
+                "2" => VirtualKeyCode.Key2,
+                "3" => VirtualKeyCode.Key3,
+                "4" => VirtualKeyCode.Key4,
+                _ => null,
+            };
+            if (code == null)
+            {
+                FileLog.Info($"sendKey: unknown key '{key}'");
+                return;
+            }
+            try
+            {
+                this._plugin.ClientApplication.SendKeyboardShortcut(code.Value, ModifierKey.None);
+            }
+            catch (Exception e)
+            {
+                FileLog.Info($"sendKey {key} failed: {e.GetType().Name}: {e.Message}");
             }
         }
 
