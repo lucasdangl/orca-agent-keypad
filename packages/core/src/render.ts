@@ -362,6 +362,8 @@ export interface InfoModel {
   tone: DeckState;
   value: string;
   caption: string;
+  /** Draw only the value, larger and centred. The caption stays in the markers (tests, simulator). */
+  valueOnly?: boolean;
 }
 
 export function renderInfoKey(
@@ -373,7 +375,7 @@ export function renderInfoKey(
   // The dark phase of a blinking key: the state colour moves to the text, so the count stays readable.
   const pal = o.blinkOff ? { bg: BLINK_OFF_BG, fg: on.bg } : on;
   const { lines, size: fs } = layoutLabel(m.caption);
-  const caption = lines
+  const caption = (m.valueOnly ? [] : lines)
     .slice(0, 2)
     .map(
       (l, i) =>
@@ -385,17 +387,24 @@ export function renderInfoKey(
     markers(m.tone, m.caption, m.value) +
     `font-family="${FONT_STACK}" font-weight="500" fill="${pal.fg}">` +
     `<rect width="144" height="144" fill="${pal.bg}"/>` +
-    `<text x="72" y="84" font-size="${m.value.length > 3 ? 40 : 56}" text-anchor="middle">${esc(m.value)}</text>` +
+    valueText(m) +
     caption +
     `</svg>`
   );
 }
 
+function valueText(m: InfoModel): string {
+  const long = m.value.length > 3;
+  // Without a caption the value fills the key: the baseline sits so the digits are centred.
+  const [fs, y] = m.valueOnly ? (long ? [48, 89] : [80, 100]) : long ? [40, 84] : [56, 84];
+  return `<text x="72" y="${y}" font-size="${fs}" text-anchor="middle">${esc(m.value)}</text>`;
+}
+
 /** Working key content: how many agents work right now (on a key or not). */
 export function workingInfo(working: number): InfoModel {
   return working === 0
-    ? { tone: 'unmapped', value: '0', caption: 'none working' }
-    : { tone: 'working', value: String(working), caption: 'working' };
+    ? { tone: 'unmapped', value: '0', caption: 'none working', valueOnly: true }
+    : { tone: 'working', value: String(working), caption: 'working', valueOnly: true };
 }
 
 /** Does this Attention key content ask for the user (it blinks then)? */
@@ -430,11 +439,13 @@ export function statusInfo(o: {
  * the ones that are on no key.
  */
 export function attentionInfo(urgent: number, top: DeckState | null, offDeck = 0): InfoModel {
-  if (urgent === 0 || !top) return { tone: 'unmapped', value: '0', caption: 'all calm' };
+  if (urgent === 0 || !top)
+    return { tone: 'unmapped', value: '0', caption: 'all calm', valueOnly: true };
   const caption = top === 'error' ? 'errors' : 'need you';
   return {
     tone: top,
     value: String(urgent),
     caption: offDeck > 0 ? `${caption} +${offDeck}` : caption,
+    valueOnly: true,
   };
 }
