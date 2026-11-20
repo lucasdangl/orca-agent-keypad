@@ -42,6 +42,27 @@ it('autofills free agent panes into empty slots and shows their state', async ()
   expect(v.get('s3')?.state).toBe('unmapped');
 });
 
+it('with autofill on chats only, terminals stay off the keys and lose earlier auto-filled ones', async () => {
+  const chat = 'structured-agent-session-s1:leaf-1';
+  const snap: Snapshot = {
+    panes: [pane('a:1'), pane(chat, { kind: 'chat', handle: '' })],
+    statuses: [],
+    omittedHostIds: [],
+  };
+  const store = new MappingStore();
+  // An earlier version auto-filled the terminal a:1 onto s1.
+  await new DeckController(fake(snap).a, store).refresh(['s1']);
+  expect(store.get('s1')?.pane?.paneKey).toBe('a:1');
+  const d = new DeckController(fake(snap).a, store, undefined, { autofillChatsOnly: true });
+  await d.refresh(['s1', 's2']);
+  expect(store.get('s1')?.pane?.paneKey).toBe(chat);
+  expect(store.get('s2')?.pane).toBeUndefined();
+  // A terminal mapped by hand stays.
+  d.configure('s2', { paneKey: 'a:1' });
+  await d.refresh(['s1', 's2']);
+  expect(store.get('s2')?.pane?.paneKey).toBe('a:1');
+});
+
 it('with autofill off, keys show pinned panes only and lose earlier auto-filled ones', async () => {
   const snap: Snapshot = { panes: [pane('a:1'), pane('b:1')], statuses: [], omittedHostIds: [] };
   const store = new MappingStore();

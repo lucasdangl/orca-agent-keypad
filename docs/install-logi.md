@@ -82,7 +82,7 @@ Options+ schaltet das Keypad-Profil um, wenn Orca vorn ist. Leg die Tasten desha
 
 ## 4. Tasten belegen
 
-Pane-Tasten füllen sich von selbst: Jede freie Taste bekommt einen Agent-Chat oder ein Agent-Pane, das noch auf keiner Taste liegt, und behält es, solange es existiert. Neue Chats rücken in freie Tasten nach. Wird ein Chat geschlossen, wird seine Taste nach kurzer Zeit frei. Eine Taste, die du im Panel mit **Unmap** leerst, bleibt dauerhaft leer.
+Pane-Tasten füllen sich von selbst: Jede freie Taste bekommt einen Agent-Chat, der noch auf keiner Taste liegt, und behält ihn, solange es ihn gibt. Terminals kommen nur auf eine Taste, wenn du sie von Hand belegst. Neue Chats rücken in freie Tasten nach. Wird ein Chat geschlossen, wird seine Taste nach kurzer Zeit frei. Eine Taste, die du im Panel mit **Unmap** leerst, bleibt dauerhaft leer.
 
 **Antwort-Modus:** Steht in Orca ein Chat vorne, der eine Frage stellt oder eine Freigabe will, werden die Pane-Tasten zu Antworttasten. Ein Druck schickt Tastendrücke an Orca:
 

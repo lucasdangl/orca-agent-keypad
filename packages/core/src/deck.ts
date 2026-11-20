@@ -1,6 +1,6 @@
 import type { OrcaAdapter, PaneInfo, PaneStatusEvent, Snapshot } from './adapter.ts';
 import { isLocalHost, LOCAL_HOST, parseHostId, readableHostId } from './host-id.ts';
-import { splitPaneKey } from './pane-key.ts';
+import { isChatPaneKey, splitPaneKey } from './pane-key.ts';
 import { MappingStore, type PaneBinding, type SlotPosition } from './mapping.ts';
 import { PaneRegistry } from './registry.ts';
 import { ShellActivity } from './shell-activity.ts';
@@ -140,6 +140,8 @@ export interface SlotConfig {
 export interface DeckOptions {
   /** Fill slots without a pane with free agent panes (default true). */
   autofill?: boolean;
+  /** Auto-fill takes agent chats only, no terminal panes (the Logi keypad). */
+  autofillChatsOnly?: boolean;
 }
 
 export type PressResult = 'focused' | 'failed' | 'unmapped';
@@ -279,6 +281,7 @@ export class DeckController {
   private readonly store: MappingStore;
   private readonly raise: Raise | undefined;
   private readonly autofillOn: boolean;
+  private readonly autofillChatsOnly: boolean;
 
   /** Pairing mode (Map pane to key). The plugin sets the callbacks to render state and answer A. */
   readonly pairing: Pairing;
@@ -290,6 +293,7 @@ export class DeckController {
     this.store = store;
     this.raise = raise;
     this.autofillOn = options.autofill ?? true;
+    this.autofillChatsOnly = options.autofillChatsOnly ?? false;
     this.pairing = new Pairing(store, {
       onState: (s) => this.onPairingState?.(s),
       onResult: (r) => {
@@ -1053,10 +1057,30 @@ export class DeckController {
       }
       return;
     }
+    // Chats only (the keypad): terminals and other panes go on a key only when mapped by hand, and a terminal an
+    // earlier version auto-filled leaves its key.
+    for (const s of slots) {
+      const cur = this.store.get(s);
+      if (
+        this.autofillChatsOnly &&
+        cur?.pane &&
+        cur.mode !== 'pinned' &&
+        !isChatPaneKey(cur.pane.paneKey)
+      ) {
+        this.diag?.(
+          `slot ${short(s)} emptied: auto-fill takes chats only (was ${cur.pane.paneKey})`,
+        );
+        this.store.remove(s);
+      }
+    }
     const taken = this.store.mappedPaneKeys();
     const free = this.snapshot.panes
       .filter(
-        (p) => p.agentType && !p.orphaned && !taken.has(p.paneKey) && !this.released.has(p.paneKey),
+        (p) =>
+          (this.autofillChatsOnly ? isChatPaneKey(p.paneKey) : !!p.agentType) &&
+          !p.orphaned &&
+          !taken.has(p.paneKey) &&
+          !this.released.has(p.paneKey),
       )
       .sort((a, b) => a.paneKey.localeCompare(b.paneKey));
     for (const s of slots) {
