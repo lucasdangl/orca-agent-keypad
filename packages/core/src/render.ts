@@ -357,54 +357,106 @@ export function renderKey(m: KeyModel, o: RenderOptions = {}): string {
   );
 }
 
-/** A key that shows one big value (Status / Attention): colour of `tone`, value in the middle, caption below. */
+/** A key that shows one big value (Status / Attention / Working): colour of `tone`, value in the middle, caption below. */
 export interface InfoModel {
   tone: DeckState;
   value: string;
   caption: string;
-  /** Draw only the value, larger and centred. The caption stays in the markers (tests, simulator). */
-  valueOnly?: boolean;
+  /**
+   * Draw the value large, under a small glyph, on a gradient, without the caption (it stays in the markers for tests
+   * and the simulator). Used by Attention and Working.
+   */
+  glyph?: InfoGlyph;
 }
+
+export type InfoGlyph = 'attention' | 'working';
+
+/** Gradient (light top left, darker bottom right) and text colour of a glyph key per tone. */
+const GLYPH_PALETTE: Partial<Record<DeckState, { from: string; to: string; fg: string }>> = {
+  unmapped: { from: '#3a3a3a', to: '#1f1f1f', fg: '#8c8c8c' },
+  working: { from: '#a8c9ff', to: '#5a8dff', fg: '#0b1f3a' },
+  needs_input: { from: '#ffe28f', to: '#ffb21f', fg: '#2b1d00' },
+  awaiting_reply: { from: '#ffc98a', to: '#ff8a26', fg: '#2e1500' },
+  error: { from: '#ffb8b8', to: '#ff6262', fg: '#3a0a0a' },
+};
+
+/** Glyphs on a 28 x 28 grid, drawn in `c`. */
+const GLYPHS: Record<InfoGlyph, (c: string) => string> = {
+  attention: (c) =>
+    `<path d="M14 3 C9.2 3 6.5 6.6 6.5 11.5 V17 L3.5 21.5 H24.5 L21.5 17 V11.5 C21.5 6.6 18.8 3 14 3 Z" fill="${c}"/>` +
+    `<path d="M10.5 24 A3.5 3.5 0 0 0 17.5 24 Z" fill="${c}"/>`,
+  working: (c) =>
+    `<circle cx="14" cy="14" r="10" fill="none" stroke="${c}" stroke-width="3.5" opacity="0.35"/>` +
+    `<path d="M14 4 A10 10 0 0 1 24 14" fill="none" stroke="${c}" stroke-width="3.5" stroke-linecap="round"/>`,
+};
 
 export function renderInfoKey(
   m: InfoModel,
   o: RenderOptions & { blinkOff?: boolean } = {},
 ): string {
   const size = o.size ?? 144;
+  const head =
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 144 144" ` +
+    markers(m.tone, m.caption, m.value);
+  if (m.glyph && !o.highContrast)
+    return head + glyphKey(m, m.glyph, o.blinkOff === true) + `</svg>`;
   const on = (o.highContrast && HIGH_CONTRAST[m.tone]) || PALETTE[m.tone];
   // The dark phase of a blinking key: the state colour moves to the text, so the count stays readable.
   const pal = o.blinkOff ? { bg: BLINK_OFF_BG, fg: on.bg } : on;
   const { lines, size: fs } = layoutLabel(m.caption);
-  const caption = (m.valueOnly ? [] : lines)
+  const caption = (m.glyph ? [] : lines)
     .slice(0, 2)
     .map(
       (l, i) =>
         `<text x="72" y="${(112 + i * 16).toFixed(1)}" font-size="${Math.min(fs, 16)}" text-anchor="middle">${esc(l)}</text>`,
     )
     .join('');
+  const long = m.value.length > 3;
+  const [vs, vy] = m.glyph ? (long ? [48, 89] : [80, 100]) : long ? [40, 84] : [56, 84];
   return (
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 144 144" ` +
-    markers(m.tone, m.caption, m.value) +
+    head +
     `font-family="${FONT_STACK}" font-weight="500" fill="${pal.fg}">` +
     `<rect width="144" height="144" fill="${pal.bg}"/>` +
-    valueText(m) +
+    `<text x="72" y="${vy}" font-size="${vs}" text-anchor="middle">${esc(m.value)}</text>` +
     caption +
     `</svg>`
   );
 }
 
-function valueText(m: InfoModel): string {
+/**
+ * Attention / Working: a gradient in the tone's colour, the glyph at the top, the value large and bold below it. In
+ * the dark phase of a blink the key turns near black and glyph, value and a thin frame take the tone's colour.
+ */
+function glyphKey(m: InfoModel, glyph: InfoGlyph, dark: boolean): string {
+  const pal = GLYPH_PALETTE[m.tone] ?? {
+    from: PALETTE[m.tone].bg,
+    to: PALETTE[m.tone].bg,
+    fg: PALETTE[m.tone].fg,
+  };
+  const fg = dark ? pal.to : pal.fg;
   const long = m.value.length > 3;
-  // Without a caption the value fills the key: the baseline sits so the digits are centred.
-  const [fs, y] = m.valueOnly ? (long ? [48, 89] : [80, 100]) : long ? [40, 84] : [56, 84];
-  return `<text x="72" y="${y}" font-size="${fs}" text-anchor="middle">${esc(m.value)}</text>`;
+  const [vs, vy] = long ? [44, 112] : [74, 124];
+  const bg = dark
+    ? `<rect width="144" height="144" fill="${BLINK_OFF_BG}"/>` +
+      `<rect x="3" y="3" width="138" height="138" rx="10" fill="none" stroke="${pal.to}" stroke-width="4" opacity="0.7"/>`
+    : // The flat rect is the fallback for a renderer without gradients.
+      `<rect width="144" height="144" fill="${pal.to}"/>` +
+      `<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">` +
+      `<stop offset="0" stop-color="${pal.from}"/><stop offset="1" stop-color="${pal.to}"/>` +
+      `</linearGradient></defs><rect width="144" height="144" fill="url(#g)"/>`;
+  return (
+    `font-family="${FONT_STACK}" font-weight="700" fill="${fg}">` +
+    bg +
+    `<g transform="translate(51 10) scale(1.5)" opacity="${m.tone === 'unmapped' ? 0.7 : 0.85}">${GLYPHS[glyph](fg)}</g>` +
+    `<text x="72" y="${vy}" font-size="${vs}" text-anchor="middle">${esc(m.value)}</text>`
+  );
 }
 
 /** Working key content: how many agents work right now (on a key or not). */
 export function workingInfo(working: number): InfoModel {
   return working === 0
-    ? { tone: 'unmapped', value: '0', caption: 'none working', valueOnly: true }
-    : { tone: 'working', value: String(working), caption: 'working', valueOnly: true };
+    ? { tone: 'unmapped', value: '0', caption: 'none working', glyph: 'working' }
+    : { tone: 'working', value: String(working), caption: 'working', glyph: 'working' };
 }
 
 /** Does this Attention key content ask for the user (it blinks then)? */
@@ -440,12 +492,12 @@ export function statusInfo(o: {
  */
 export function attentionInfo(urgent: number, top: DeckState | null, offDeck = 0): InfoModel {
   if (urgent === 0 || !top)
-    return { tone: 'unmapped', value: '0', caption: 'all calm', valueOnly: true };
+    return { tone: 'unmapped', value: '0', caption: 'all calm', glyph: 'attention' };
   const caption = top === 'error' ? 'errors' : 'need you';
   return {
     tone: top,
     value: String(urgent),
     caption: offDeck > 0 ? `${caption} +${offDeck}` : caption,
-    valueOnly: true,
+    glyph: 'attention',
   };
 }
