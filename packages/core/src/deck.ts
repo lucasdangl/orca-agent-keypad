@@ -23,7 +23,8 @@ export interface SlotView {
   focused?: boolean;
 }
 
-const short = (id: string) => id.slice(0, 6);
+/** Log form of a slot id: Elgato contexts are long hex strings (6 characters tell them apart), Logi's are short. */
+const short = (id: string) => (id.length > 12 ? id.slice(0, 6) : id);
 
 /**
  * What a failed read says when Orca did answer but not in a shape the adapter knows (a zod issue list or

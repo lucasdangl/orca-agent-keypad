@@ -104,8 +104,8 @@ Ziel: Die Logik aus `streamdeck-plugin` läuft ohne `@elgato/streamdeck`.
 
 ## Phase 2 – Device-Protokoll und Daemon (1 Tag)
 
-- [ ] Neues Paket `packages/logi-daemon`: Einstiegspunkt `bin.ts`, implementiert `DevicePort` über **NDJSON auf stdin/stdout** (eine JSON-Zeile pro Nachricht, Logs ausschließlich auf stderr).
-- [ ] Nachrichten (Version `v: 1`, mit zod validieren wie in `adapter-bridge/src/protocol.ts`):
+- [x] Neues Paket `packages/logi-daemon`: Einstiegspunkt `bin.ts`, implementiert `DevicePort` über **NDJSON auf stdin/stdout** (eine JSON-Zeile pro Nachricht, Logs ausschließlich auf stderr).
+- [x] Nachrichten (Version `v: 1`, mit zod validieren wie in `adapter-bridge/src/protocol.ts`). Referenz: `docs/device-protocol.md` (ein Test hält sie mit `protocol.ts` gleich). Zusätzlich zum Entwurf: `ready` als Antwort auf `hello`.
 
   | Richtung | type | Felder |
   |---|---|---|
@@ -117,13 +117,13 @@ Ziel: Die Logik aus `streamdeck-plugin` läuft ohne `@elgato/streamdeck`.
   | Daemon → Logi | `saveSettings` | `settings: object` |
   | Daemon → Logi | `alert` | `slotId` (kurzes Fehlerfeedback) |
 
-- [ ] ~~SVG → PNG im Daemon mit `@resvg/resvg-js`~~ Entfällt laut Phase 0: Der Daemon schickt das SVG aus `render.ts` unverändert, das C#-Plugin setzt `width`/`height` auf die angeforderte Größe und nutzt `BitmapImage.FromSvg`.
-- [ ] Bildrate drosseln, auf das Ergebnis aus Phase 0 abgestimmt. Nur geänderte Bilder senden (diese Logik gibt es schon: „setImage only if changed“). Das Spinner-Tempo über `spinnerAdvances` anpassen.
-- [ ] `watchHost({ parent: process.ppid })` bleibt: Der Daemon beendet sich, wenn das C#-Plugin weg ist. Zusätzlich beendet er sich bei EOF auf stdin.
-- [ ] Bundle mit rollup, analog zu `packages/streamdeck-plugin/rollup.config.mjs`, zu **einer** Datei `daemon.mjs` ohne native Abhängigkeiten.
-- [ ] Testharness `scripts/logi-sim.ts`: spielt das C#-Plugin über stdin/stdout nach und schreibt die Bilder als PNG nach `tmp/keys/`. Damit lässt sich ohne Hardware testen.
+- [x] ~~SVG → PNG im Daemon mit `@resvg/resvg-js`~~ Entfällt laut Phase 0: Der Daemon schickt das SVG aus `render.ts` unverändert, das C#-Plugin setzt `width`/`height` auf die angeforderte Größe und nutzt `BitmapImage.FromSvg`.
+- [x] Bildrate drosseln, auf das Ergebnis aus Phase 0 abgestimmt: nur geänderte Bilder (deck-host), höchstens ein Bild pro Taste alle 100 ms (`LogiPort`, das neueste gewinnt). `spinnerAdvances` bleibt bei 4 fps, das liegt weit unter der in Phase 0 gemessenen Grenze.
+- [x] `watchHost({ parent: process.ppid })` bleibt: Der Daemon beendet sich, wenn das C#-Plugin weg ist. Zusätzlich beendet er sich bei EOF auf stdin.
+- [x] Bundle mit rollup, analog zu `packages/streamdeck-plugin/rollup.config.mjs`, zu **einer** Datei `daemon.mjs` ohne native Abhängigkeiten: `pnpm logi:build` → `packages/logi-daemon/dist/daemon.mjs` (~570 KB).
+- [x] Testharness `scripts/logi-sim.ts` (`pnpm logi-sim [--bundle]`): spielt das C#-Plugin über stdin/stdout nach und schreibt die Bilder als SVG nach `tmp/keys/` (mit `index.html`, die sich selbst neu lädt). Orca und Plugin A sind simuliert (`scripts/logi-sim-lib.ts`), echtes Orca und `~/.orca-deck` bleiben unberührt. Automatische Abnahme: `scripts/logi-sim.test.ts` (läuft in `pnpm test`).
 
-**Abnahme:** `fake-orca` und `logi-sim` laufen, Status-Wechsel erscheinen als PNG-Dateien, ein simulierter `press` fokussiert den Pane im Fake.
+**Abnahme:** `fake-orca` und `logi-sim` laufen, Status-Wechsel erscheinen als SVG-Dateien, ein simulierter Tap fokussiert den Pane im Fake. ✅ (`scripts/logi-sim.test.ts`, manuell mit `pnpm logi-sim --bundle`)
 
 ## Phase 3 – Logi C#-Plugin (1–2 Tage)
 

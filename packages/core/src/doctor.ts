@@ -109,6 +109,12 @@ export function tmuxMissingVars(output: string): string[] {
 }
 
 /** Setup checks, in the order they are shown. */
+const HOST_NAMES: Record<Exclude<DeckHostInfo['host'], 'unknown'>, string> = {
+  elgato: 'Elgato Stream Deck',
+  opendeck: 'OpenDeck',
+  logi: 'Logi Plugin Service',
+};
+
 export function runChecks(f: DoctorFacts): Check[] {
   const checks: Check[] = [];
 
@@ -302,7 +308,8 @@ export function runChecks(f: DoctorFacts): Check[] {
     const seen =
       f.host.host === 'unknown'
         ? `Host not recognised (app ${f.host.version || '?'}, ${f.host.os}); set ORCA_DECK_HOST to elgato or opendeck`
-        : `${f.host.host === 'elgato' ? 'Elgato Stream Deck' : 'OpenDeck'} ${f.host.version}, ${f.host.os} (by ${f.host.basis})`;
+        : `${HOST_NAMES[f.host.host]} ${f.host.version}, ${f.host.os} (by ${f.host.basis})`;
+    const label = f.host.host === 'logi' ? 'Logi Plugin Service' : 'Stream Deck app';
     const node = f.nodeVersion ? `, Node ${f.nodeVersion.replace(/^v/, '')}` : '';
     // OpenDeck runs plugins on the Node installed on the machine; the Elgato app brings Node 20.
     const old =
@@ -311,18 +318,20 @@ export function runChecks(f: DoctorFacts): Check[] {
       old
         ? {
             id: 'deck-host',
-            label: 'Stream Deck app',
+            label,
             result: 'warn',
             reason: `${seen}${node}: older than Node ${MIN_NODE_MAJOR}`,
             caption: 'Node too old',
             hint:
               f.host.host === 'elgato'
                 ? `Update the Elgato Stream Deck app (it brings Node ${MIN_NODE_MAJOR})`
-                : `OpenDeck uses your system Node: install Node ${MIN_NODE_MAJOR}+`,
+                : f.host.host === 'logi'
+                  ? `The Orca Keypad plugin runs your system Node: install Node ${MIN_NODE_MAJOR}+ or set its path in the plugin settings`
+                  : `OpenDeck uses your system Node: install Node ${MIN_NODE_MAJOR}+`,
           }
         : {
             id: 'deck-host',
-            label: 'Stream Deck app',
+            label,
             result: 'ok',
             reason: `${seen}${node}`,
             caption: '',
