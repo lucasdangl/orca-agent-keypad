@@ -375,7 +375,7 @@ export type InfoGlyph = 'attention' | 'working' | 'done';
 const GLYPH_PALETTE: Partial<Record<DeckState, { from: string; to: string; fg: string }>> = {
   unmapped: { from: '#3a3a3a', to: '#1f1f1f', fg: '#8c8c8c' },
   working: { from: '#a8c9ff', to: '#5a8dff', fg: '#0b1f3a' },
-  completed: { from: '#b6f2c9', to: '#3fc574', fg: '#0a2e1a' },
+  completed: { from: '#a6f0e8', to: '#1fb3a6', fg: '#032b28' },
   needs_input: { from: '#ffe28f', to: '#ffb21f', fg: '#2b1d00' },
   awaiting_reply: { from: '#ffc98a', to: '#ff8a26', fg: '#2e1500' },
   error: { from: '#ffb8b8', to: '#ff6262', fg: '#3a0a0a' },
