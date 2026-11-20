@@ -1,4 +1,4 @@
-{"v":2,"name":"a-record-events-idle-out","description":"A recording survives Orca idling the worker out: the next worker keeps appending to the same file and the second run of Agent Deck: Record events stops it instead of starting another. Revert check: drop the resume() call in activate().","sides":["a"],"keys":{}}
+{"v":2,"name":"a-record-events-idle-out","description":"A recording survives Orca idling the worker out: the next worker keeps appending to the same file and the second run of Agent Keypad: Record events stops it instead of starting another. Revert check: drop the resume() call in activate().","sides":["a"],"keys":{}}
 {"at":0,"do":"orca.activate"}
 {"at":0,"do":"bridge.frame","from":"a","frame":{"type":"hello"}}
 {"at":100,"do":"orca.command","id":"deck.record","resultContains":"Recording events to"}

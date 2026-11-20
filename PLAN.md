@@ -165,15 +165,18 @@ Anlass: Beim Hardware-Test liefen alle Agents als Orca-Chats, nicht in Terminals
 
 ## Phase 4 – Plugin A anpassen (½ Tag)
 
-- [ ] Der Doctor bzw. die Status-Taste meldet ein fehlendes Plugin A deutlich, statt dass Halten still nichts tut. Gefunden beim Hardware-Test in Phase 3b.
+- [x] Der Doctor bzw. die Status-Taste meldet ein fehlendes Plugin A deutlich, statt dass Halten still nichts tut. Gefunden beim Hardware-Test in Phase 3b.
+  - Ursache: Den Check gab es schon („Install the Orca plugin“). `pnpm map-key` hat sich aber als Plugin A angemeldet. Danach galt A als „schläft“, und die Installationsprüfung lief nie.
+  - `map-key` ist entfernt, Plugin A ersetzt es.
+  - Ohne geöffnetes Panel zeigt die gehaltene Taste weiterhin 3 s lang „Map in Orca“.
 
-- [ ] In `orca-plugin/orca-plugin.json`: `id` → `agent-keypad`, `name` → „Agent Keypad for Orca“, Beschreibungen und Tooltips „Stream Deck“ → „Logi Keypad“. Den Shortcut `Mod+Alt+K` beibehalten oder ändern.
-- [ ] Die Plugin-Keys, die B bei `openPanel` probiert (`1am.agent-deck`, `local.agent-deck`), auf den neuen Key umstellen (`local.agent-keypad` bzw. `<owner>.agent-keypad`). Danach in `adapter-runtime` / `plugin.ts` → `deck-host` suchen.
-- [ ] `panel.jsx`: Gerätetexte anpassen. Das Raster kommt aus `deckState.cols/rows` (3×3), also keine Logikänderung.
-- [ ] Bridge-Protokoll **nicht** ändern (`v: 1`, Minor 5). `helloAck.deck.devices[].model` = `"MX Keypad"`.
-- [ ] Installation in Orca: Settings → Plugins → Install from Git (eigener Fork) oder lokal.
+- [x] In `orca-plugin/orca-plugin.json` (und im Git-Manifest `orca-plugin.json` im Root): `id` → `agent-keypad`, `name` → „Agent Keypad for Orca“, Beschreibungen und Tooltips „Stream Deck“ → „Logi Keypad“. Der Shortcut `Mod+Alt+K` bleibt. Befehls-IDs (`deck.*`), Panel-ID `deck` und `~/.orca-deck` bleiben, Plugin B kennt sie.
+- [x] Die Plugin-Keys, die B bei `openPanel` probiert (`1am.agent-deck`, `local.agent-deck`), auf den neuen Key umstellen (`local.agent-keypad` bzw. `<owner>.agent-keypad`). Jetzt in dieser Reihenfolge: `lucasdangl.agent-keypad`, `local.agent-keypad`, dann die alten `1am.agent-deck` und `local.agent-deck` als Rückfall (gleiches Bridge-Protokoll). Liegt in `adapter-bridge/installed.ts` und `adapter-runtime/client.ts`.
+- [x] `panel.jsx` und `main.mjs`: Gerätetexte angepasst (Keypad, Logi Options+). Das Raster kommt aus `deckState.cols/rows` (3×3), also keine Logikänderung.
+- [x] Bridge-Protokoll **nicht** geändert (`v: 1`, Minor 5). Das Modell heißt `"MX Creative Keypad"`, wie das Gerät tatsächlich heißt.
+- [x] Installation in Orca: lokal mit `orca plugin dev load orca-plugin`. Install from Git (Fork) und der Katalog kommen in Phase 5, weil der Katalog-Eintrag einen Release-Commit braucht.
 
-**Abnahme:** Nach `orca plugin logs local.agent-keypad` verbindet sich A mit dem Daemon (HMAC-Handshake ok). Statuswechsel kommen sofort an, nicht erst nach dem 2-s-Poll.
+**Abnahme (bestanden am 2026-11-20):** `local.agent-keypad` verbindet sich mit dem Daemon. Statuswechsel kommen per Push, das hat die Aufzeichnung in Phase 3b belegt. Ursprüngliche Formulierung: Nach `orca plugin logs local.agent-keypad` verbindet sich A mit dem Daemon (HMAC-Handshake ok). Statuswechsel kommen sofort an, nicht erst nach dem 2-s-Poll.
 
 ## Phase 5 – Paketieren, Installieren, Doku (½ Tag)
 

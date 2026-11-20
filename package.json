@@ -32,8 +32,7 @@
     "prepare": "husky",
     "catalog": "node scripts/catalog.mjs",
     "logi:build": "pnpm -C packages/logi-daemon build",
-    "logi-sim": "node --experimental-strip-types scripts/logi-sim.ts",
-    "map-key": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/map-key.ts"
+    "logi-sim": "node --experimental-strip-types scripts/logi-sim.ts"
   },
   "dependencies": {
     "ws": "8.22.0",

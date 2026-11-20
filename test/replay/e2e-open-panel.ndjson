@@ -4,9 +4,9 @@
 {"at":0,"do":"deck.appear","key":1}
 {"at":0,"do":"deck.appear","key":2}
 {"at":100,"do":"expect.panel","request":"deck.get","result":{"status":"ok","deck":{"connected":true}}}
-{"at":200,"do":"orca.command","id":"deck.map","result":"Agent Deck panel"}
+{"at":200,"do":"orca.command","id":"deck.map","result":"Agent Keypad panel"}
 {"at":200,"do":"expect.runtime","method":"plugins.open","params":{"pluginKey":"1am.agent-deck","panelId":"deck"}}
 {"at":400,"do":"expect.panel","request":"deck.assign","input":{"key":2,"replace":false},"result":{"ok":true,"action":"mapped"}}
 {"at":400,"do":"expect.key","key":2,"state":"completed","label":"Claude Code"}
 {"at":600,"do":"orca.plugin","key":"1am.agent-deck","status":"absent"}
-{"at":700,"do":"orca.command","id":"deck.map","result":"Could not open the Agent Deck panel: open it from the sidebar"}
+{"at":700,"do":"orca.command","id":"deck.map","result":"Could not open the Agent Keypad panel: open it from the sidebar"}

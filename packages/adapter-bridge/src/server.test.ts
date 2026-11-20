@@ -654,7 +654,7 @@ describe('plugin A against a hostile peer on the bridge port', () => {
     );
     const { a, logs } = await connectTo(srv);
     await new Promise((r) => setTimeout(r, 150));
-    expect(logs.join('\n')).not.toContain('update Agent Deck');
+    expect(logs.join('\n')).not.toContain('update Agent Keypad');
     expect((a.status() as { versionNote?: string | null }).versionNote ?? null).toBeNull();
     a.stop();
     srv.close();
@@ -807,8 +807,8 @@ describe('plugin A activate() and the Show status command', () => {
   });
 
   it.each([
-    [false, 'Stream Deck not connected', []],
-    [true, 'Agent Deck panel', ['openPanel']],
+    [false, 'Keypad not connected', []],
+    [true, 'Agent Keypad panel', ['openPanel']],
   ])('Open panel with the deck connected=%s', async (deckUp, toast, sent) => {
     const connected = { value: deckUp };
     server = new BridgeServer({
@@ -940,20 +940,23 @@ describe('Open panel when B cannot open it', () => {
       events: { on: () => {} },
     });
     expect(await commands.get('deck.map')!()).toBe(
-      'Could not open the Agent Deck panel: open it from the sidebar',
+      'Could not open the Agent Keypad panel: open it from the sidebar',
     );
   });
 });
 
 describe('status bar button', () => {
   it.each([
-    [{ state: 'connected', deck: { connected: true } }, 'Agent Deck'],
-    [{ state: 'connected', deck: { connected: false } }, 'No Stream Deck'],
+    [{ state: 'connected', deck: { connected: true } }, 'Agent Keypad'],
+    [{ state: 'connected', deck: { connected: false } }, 'No keypad'],
     // The last deckState of this connection wins over what helloAck said.
-    [{ state: 'connected', deck: { connected: false }, deckConnected: true }, 'Agent Deck'],
+    [{ state: 'connected', deck: { connected: false }, deckConnected: true }, 'Agent Keypad'],
     [{ state: 'b-not-running', deck: null }, 'Deck offline'],
     [{ state: 'disconnected', deck: null }, 'Deck offline'],
-    [{ state: 'disconnected', deck: null, versionNote: 'B speaks bridge 2' }, 'Update Agent Deck'],
+    [
+      { state: 'disconnected', deck: null, versionNote: 'B speaks bridge 2' },
+      'Update Agent Keypad',
+    ],
   ])('%o shows %s', (status, text) => {
     expect(plugin.statusBarItem(status)?.text).toBe(text);
   });
@@ -987,7 +990,7 @@ describe('status bar button', () => {
       },
     });
     await new Promise((r) => setTimeout(r, 200));
-    expect(updates.at(-1)).toMatchObject({ id: 'deck', text: 'Agent Deck', tone: 'neutral' });
+    expect(updates.at(-1)).toMatchObject({ id: 'deck', text: 'Agent Keypad', tone: 'neutral' });
     expect(new Set(updates.map((u) => u.text)).size).toBe(updates.length);
     // Orca before 1.4.248: no host call at all.
     const calls: string[] = [];

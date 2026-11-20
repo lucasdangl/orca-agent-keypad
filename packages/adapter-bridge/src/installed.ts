@@ -2,8 +2,14 @@
  * Orca plugin keys of plugin A (`<publisher>.<id>`). The manifest has no publisher: Orca takes it
  * from the repository owner for a git or catalog install (`1am`) and uses `local` for a folder or
  * zip installed from a local path. An exact list, so a foreign `x.agent-deck` never matches.
+ * Agent Keypad (this fork, `lucasdangl`) first; upstream's Agent Deck still counts, it speaks the same bridge.
  */
-export const PLUGIN_A_KEYS: readonly string[] = ['1am.agent-deck', 'local.agent-deck'];
+export const PLUGIN_A_KEYS: readonly string[] = [
+  'lucasdangl.agent-keypad',
+  'local.agent-keypad',
+  '1am.agent-deck',
+  'local.agent-deck',
+];
 
 /**
  * Is plugin A installed and not disabled, from `orca plugin list --json`? Orca starts a worker
