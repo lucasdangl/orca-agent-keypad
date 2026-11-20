@@ -8,3 +8,4 @@ out
 agent-deck.code-workspace
 # Logi C# plugin (dotnet build output, generated metadata)
 logi-plugin
+orca-plugin/.orca

@@ -190,7 +190,11 @@ Getestet am 2026-11-20 mit Orca 1.4.264 **[Test]**.
 - **Voraussetzung:** Plugin A muss in Orca installiert sein.
   - Ohne Plugin A öffnet Halten nichts, im Log steht dann `open panel: refused`. Der Doctor bzw. die Status-Taste sollte das klar melden (Phase 4/5).
   - Für die Entwicklung: `orca plugin dev load orca-plugin` mit Freigabe (Plugin-Key `local.agent-deck`).
-- Offen: Ob Orca `agent.status.changed` für Chats sendet, zeigen die Logs nicht. Die Farben stimmen trotzdem, notfalls über den 2-s-Poll.
+- **Status-Push für Chats:** Orca sendet `agent.status.changed` auch für Chats, mit `mainAgent.state` und `stateStartedAt`. Belegt durch eine Aufzeichnung von Plugin A **[Test]**.
+- **`stateStartedAt` ist keine Reihenfolge** **[Test]**:
+  - Geht ein Agent im selben Turn von `waiting` zurück auf `working`, meldet Orca als `stateStartedAt` wieder den Beginn des Turns. Der liegt vor dem `waiting`.
+  - Der Bridge-Feed hat das neue `working` deshalb als „älter“ verworfen. Die Taste und der Attention-Zähler blieben für den Rest des Turns auf „needs you“.
+  - Fix: Der Feed ordnet nach `receivedAt` (Zustellzeit, die Uhr von Plugin A) und erst bei Gleichstand nach `stateStartedAt`. Den Upstream betrifft das genauso.
 - Auf diesem Rechner laufen **alle** Agents als Chats. Die Terminal-Panes sind einfache Shells. Ohne Chat-Unterstützung zeigt das Keypad deshalb keinen einzigen Agent.
 
 ## Folge für Phase 2

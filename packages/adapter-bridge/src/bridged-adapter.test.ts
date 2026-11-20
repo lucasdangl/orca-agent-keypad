@@ -207,3 +207,38 @@ describe('nothing A sends drives Orca', () => {
     },
   );
 });
+
+describe('BridgeStatusFeed: order by delivery, not by stateStartedAt', () => {
+  // Seen with an Orca agent chat on 2026-11-20: working (turn start T0), waiting at T1, then working again with the
+  // turn start T0 reported once more. The last push must win, or the key stays on "needs you" all turn.
+  const at = (paneKey: string, state: string, stateStartedAt: number, receivedAt: number) => ({
+    ...push(paneKey, state, stateStartedAt),
+    receivedAt,
+  });
+
+  it('takes working back after waiting although its stateStartedAt is older', async () => {
+    const t = setup();
+    t.emit(at('p:1', 'working', 100, 100));
+    t.emit(at('p:1', 'waiting', 500, 500));
+    t.emit(at('p:1', 'working', 100, 900));
+    t.snap.statuses = [{ paneKey: 'p:1', state: 'working', stateStartedAt: 100 }];
+    expect((await t.adapter.snapshot()).statuses[0]?.state).toBe('working');
+  });
+
+  it('a replay of the earlier waiting after a reconnect does not move the pane back', async () => {
+    const t = setup();
+    t.emit(at('p:1', 'waiting', 500, 500));
+    t.emit(at('p:1', 'working', 100, 900));
+    t.emit(at('p:1', 'waiting', 500, 500));
+    t.snap.statuses = [{ paneKey: 'p:1', state: 'working', stateStartedAt: 100 }];
+    expect((await t.adapter.snapshot()).statuses[0]?.state).toBe('working');
+  });
+
+  it('between messages delivered at the same time the later state start wins', async () => {
+    const t = setup();
+    t.emit(at('p:1', 'done', 700, 900));
+    t.emit(at('p:1', 'working', 100, 900));
+    t.snap.statuses = [{ paneKey: 'p:1', state: 'done', stateStartedAt: 700 }];
+    expect((await t.adapter.snapshot()).statuses[0]?.state).toBe('done');
+  });
+});

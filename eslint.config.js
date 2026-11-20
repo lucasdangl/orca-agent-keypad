@@ -10,6 +10,7 @@ export default tseslint.config(
       'out/**',
       'logi-plugin/**/bin/**',
       'logi-plugin/**/obj/**',
+      'orca-plugin/.orca/**',
     ],
   },
   js.configs.recommended,

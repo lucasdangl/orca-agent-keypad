@@ -17,14 +17,31 @@ export type PushedStatus = PaneStatusEvent & { arrivedAt: number };
 
 /**
  * Latest agent status per pane as pushed by plugin A. Status events are idempotent: a message
- * older than what is stored (by `stateStartedAt`) never replaces it, so the replay A sends
- * after every reconnect cannot move a pane backwards. A repeat of the stored status keeps its
- * first arrival time, and an expired status is never taken back from a replay.
+ * older than what is stored never replaces it, so the replay A sends after every reconnect cannot
+ * move a pane backwards. A repeat of the stored status keeps its first arrival time, and an
+ * expired status is never taken back from a replay.
+ *
+ * "Older" is decided by `receivedAt` (when Orca delivered the event, all on A's clock), and only
+ * between messages delivered at the same time by `stateStartedAt`. `stateStartedAt` alone is not an
+ * order: when an agent goes back from `waiting` to `working` in the same turn, Orca reports the
+ * turn's start again, which is older than the `waiting` (seen with Orca's agent chats; the key
+ * then stayed on "needs you" for the rest of the turn).
  */
+/** Where a pushed status stands among the pane's others: delivery time first, then the state's start. */
+interface Order {
+  receivedAt: number;
+  stateStartedAt: number;
+}
+
+const compare = (a: Order, b: Order): number =>
+  a.receivedAt - b.receivedAt || a.stateStartedAt - b.stateStartedAt;
+
 export class BridgeStatusFeed {
   private readonly byPane = new Map<string, PushedStatus>();
-  /** paneKey -> stateStartedAt of a status the poll showed was dropped by Orca. */
-  private readonly expired = new Map<string, number>();
+  /** paneKey -> order of the stored status (see `newer`). */
+  private readonly order = new Map<string, Order>();
+  /** paneKey -> order of a status the poll showed was dropped by Orca. */
+  private readonly expired = new Map<string, Order>();
   private seenA = false;
   private readonly listeners = new Set<() => void>();
   private readonly bridge: BridgeServer;
@@ -41,11 +58,21 @@ export class BridgeStatusFeed {
     bridge.on('message', (m) => {
       if (m.type !== 'agentStatus') return;
       if (!RAW_STATES.has(m.state as AgentRawState)) return;
+      const at: Order = { receivedAt: m.receivedAt, stateStartedAt: m.stateStartedAt };
       const dead = this.expired.get(m.paneKey);
-      if (dead !== undefined && m.stateStartedAt <= dead) return;
+      if (dead !== undefined && compare(at, dead) <= 0) return;
       const prev = this.byPane.get(m.paneKey);
-      if (prev && prev.stateStartedAt > m.stateStartedAt) return;
-      if (prev && prev.stateStartedAt === m.stateStartedAt && prev.state === m.state) return;
+      const prevAt = this.order.get(m.paneKey);
+      if (prev && prevAt) {
+        const c = compare(at, prevAt);
+        if (c < 0) return;
+        if (prev.state === m.state && prev.stateStartedAt === m.stateStartedAt) {
+          // A repeat (Orca delivers a transition 2-3 times): keep the first arrival time.
+          if (c > 0) this.order.set(m.paneKey, at);
+          return;
+        }
+      }
+      this.order.set(m.paneKey, at);
       this.byPane.set(m.paneKey, {
         paneKey: m.paneKey,
         state: m.state as AgentRawState,
@@ -73,10 +100,11 @@ export class BridgeStatusFeed {
   }
   /** Forgets a pane's status for good: Orca sends no event when an agent row goes away. */
   expire(paneKey: string): void {
-    const s = this.byPane.get(paneKey);
-    if (!s) return;
+    const at = this.order.get(paneKey);
+    if (!this.byPane.has(paneKey) || !at) return;
     this.byPane.delete(paneKey);
-    this.expired.set(paneKey, s.stateStartedAt);
+    this.order.delete(paneKey);
+    this.expired.set(paneKey, at);
   }
   /** Fires on every change; use it to refresh keys without waiting for the next poll. */
   onChange(fn: () => void): () => void {
