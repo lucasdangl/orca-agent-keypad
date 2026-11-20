@@ -12,6 +12,7 @@ All notable changes to this project are documented here. Format: [Keep a Changel
 ### Changed
 
 - Attention and Working show only the number, large and centred, without a caption. Status keeps its caption.
+- The keypad no longer writes the action name ("Orca Attention") under the keys: the plugin ships a default icon template that hides it.
 - Plugin A is named Agent Keypad in the Setup checks too, and their install link points to this fork.
 
 ## [0.4.0] - 2026-11-20

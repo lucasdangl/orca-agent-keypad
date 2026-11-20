@@ -217,6 +217,10 @@ Gesehen am 2026-11-20 mit Options+ und Plugin Service 6.4.2 **[Test]**.
 - Ändert man in Options+ das Symbol einer Plugin-Taste, speichert Options+ das Bild als Datei im Profil: `…/LogiPluginService/Applications/Loupedeck70/<app>/Profiles/<id>/ActionIcons/$OrcaKeypad___<Action>.ict`. Das ist JSON, darin steht das Bild als Base64.
 - Solange diese Datei existiert, zeigt der Service nur dieses Bild. Er ruft `GetCommandImage` nicht mehr auf, auch nicht nach `ActionImageChanged()`, einem Neustart des Service oder dem Neu-Anstecken des Keypads. Tastendrücke kommen weiter an.
 - Abhilfe: Taste in Options+ neu belegen, ohne das Symbol zu ändern, oder bei gestopptem Service die `.ict`-Datei löschen. Danach fragt der Service sofort wieder Bilder an.
+- **Name unter der Taste:** Ohne Template schreibt der Service den Namen der Aktion („Orca Attention“) unter das Bild, auch wenn `GetCommandImage` ein volles Bild liefert. Abhilfe ist `metadata/DefaultIconTemplate.ict` im Paket:
+  - Ein Template **ohne** Bild-Element blendet auch unser Bild aus, die Taste bleibt leer, obwohl `GetCommandImage` weiter aufgerufen wird.
+  - Ein Bild-Element über die ganze Taste mit `"image": null` und ein Text-Element mit `"isVisible": false` ergeben genau unser Bild, ohne Namen, und es wird live aktualisiert.
+  - Ein Template des Nutzers in `ActionIcons/` hat Vorrang, siehe oben.
 - Wer nach einem Bug sucht, sollte zuerst prüfen, ob im Log `GetCommandImage`-Aufrufe ankommen.
 - Bei einem harten Kill des Service bleibt `bridge.json` liegen. Der Daemon beendet sich nach höchstens 0,5 s, und der nächste Daemon überschreibt die Datei.
 
