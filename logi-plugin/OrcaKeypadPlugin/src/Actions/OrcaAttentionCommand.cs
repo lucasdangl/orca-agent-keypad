@@ -5,7 +5,7 @@ namespace Loupedeck.OrcaKeypadPlugin
     public class OrcaAttentionCommand : OrcaInfoCommand
     {
         public OrcaAttentionCommand()
-            : base("Orca Attention", "Agents waiting for you; press to jump to the one waiting longest", KeypadHub.AttentionSlot, "Attention")
+            : base("Orca Attention", "Blinks while an agent needs you; press to jump to the one waiting longest, again for the next", KeypadHub.AttentionSlot, "Attention")
         {
         }
 

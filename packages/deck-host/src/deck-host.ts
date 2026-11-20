@@ -2,7 +2,9 @@ import { randomUUID } from 'node:crypto';
 import {
   MappingStore,
   DeckController,
+  attentionBlinks,
   attentionInfo,
+  workingInfo,
   statusInfo,
   type SlotSettings,
 } from '@orca-agent-deck/core';
@@ -61,6 +63,7 @@ export class DeckHost {
   readonly panes: PaneKeys;
   readonly status: InfoKeys;
   readonly attention: InfoKeys;
+  readonly working: InfoKeys;
   readonly doctor: Doctor;
   readonly runtime: RuntimeClient;
   private readonly o: DeckHostOptions;
@@ -141,14 +144,28 @@ export class DeckHost {
         if (ov.mode === 'down' || ov.unsupported || ov.badResponse) return statusInfo(ov);
         return attentionInfo(ov.urgent, ov.topState, ov.offDeck);
       },
-      // Number of panes that need you. Press = focus the most urgent, again = next.
+      // Number of panes that need you. Press = focus the most urgent, again = next. Blinks while one does.
       async (c) => ((await c.pressAttention()) === 'failed' ? 'failed' : 'ok'),
+      { ...timers, blink: attentionBlinks },
+    );
+    this.working = new InfoKeys(
+      'working',
+      port,
+      () => this.controller(),
+      (c) => {
+        const ov = c.overview();
+        if (ov.mode === 'down' || ov.unsupported || ov.badResponse) return statusInfo(ov);
+        return workingInfo(ov.working);
+      },
+      // Number of agents working. Press = focus the one working longest, again = next.
+      async (c) => ((await c.pressWorking()) === 'failed' ? 'failed' : 'ok'),
       timers,
     );
     port.onKeysChanged(() => {
       void this.panes.syncKeys().catch(this.logFailure('key update'));
       void this.status.syncKeys().catch(this.logFailure('key update'));
       void this.attention.syncKeys().catch(this.logFailure('key update'));
+      void this.working.syncKeys().catch(this.logFailure('key update'));
     });
     port.onKey((slot, edge) => {
       const kind = port.keys().find((k) => k.slotId === slot)?.kind;
@@ -156,7 +173,7 @@ export class DeckHost {
         if (edge === 'down') this.panes.keyDown(slot);
         else void this.panes.keyUp(slot).catch(this.logFailure('press'));
       } else if (kind && edge === 'down') {
-        void (kind === 'status' ? this.status : this.attention)
+        void { status: this.status, attention: this.attention, working: this.working }[kind]
           .press(slot)
           .catch(this.logFailure('press'));
       }
@@ -373,6 +390,7 @@ export class DeckHost {
     this.panes.stop();
     this.status.stop();
     this.attention.stop();
+    this.working.stop();
     this.stopWatch?.();
     await this.bridge.stop();
   }

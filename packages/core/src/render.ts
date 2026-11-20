@@ -63,6 +63,7 @@ const PALETTE: Record<DeckState, { bg: string; fg: string }> = {
 };
 
 const FOCUS_BG = '#f4f4f4';
+const BLINK_OFF_BG = '#1c1c1c';
 
 const HIGH_CONTRAST: Partial<Record<DeckState, { bg: string; fg: string }>> = {
   idle: { bg: '#000000', fg: '#ffffff' },
@@ -363,9 +364,14 @@ export interface InfoModel {
   caption: string;
 }
 
-export function renderInfoKey(m: InfoModel, o: RenderOptions = {}): string {
+export function renderInfoKey(
+  m: InfoModel,
+  o: RenderOptions & { blinkOff?: boolean } = {},
+): string {
   const size = o.size ?? 144;
-  const pal = (o.highContrast && HIGH_CONTRAST[m.tone]) || PALETTE[m.tone];
+  const on = (o.highContrast && HIGH_CONTRAST[m.tone]) || PALETTE[m.tone];
+  // The dark phase of a blinking key: the state colour moves to the text, so the count stays readable.
+  const pal = o.blinkOff ? { bg: BLINK_OFF_BG, fg: on.bg } : on;
   const { lines, size: fs } = layoutLabel(m.caption);
   const caption = lines
     .slice(0, 2)
@@ -384,6 +390,17 @@ export function renderInfoKey(m: InfoModel, o: RenderOptions = {}): string {
     `</svg>`
   );
 }
+
+/** Working key content: how many agents work right now (on a key or not). */
+export function workingInfo(working: number): InfoModel {
+  return working === 0
+    ? { tone: 'unmapped', value: '0', caption: 'none working' }
+    : { tone: 'working', value: String(working), caption: 'working' };
+}
+
+/** Does this Attention key content ask for the user (it blinks then)? */
+export const attentionBlinks = (m: InfoModel): boolean =>
+  m.tone === 'needs_input' || m.tone === 'awaiting_reply' || m.tone === 'error';
 
 /** Status key content: health mode and the worst problem. */
 export function statusInfo(o: {

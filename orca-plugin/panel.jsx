@@ -227,6 +227,7 @@ const pick = (p) => ({ paneKey: p.paneKey, ...(p.hostId ? { hostId: p.hostId } :
 const OTHER_KINDS = {
   status: 'the Agent Keypad status key',
   attention: 'the Agent Keypad attention key',
+  working: 'the Agent Keypad working key',
   other: 'not an Agent Keypad key',
 };
 

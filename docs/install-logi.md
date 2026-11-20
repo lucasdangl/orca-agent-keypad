@@ -72,7 +72,10 @@ In Options+ das Keypad öffnen. Unter **Orca Agent Keypad** gibt es:
 
 - **Orca Panes → Slot 1 … Slot 9**: Pane-Tasten. Die Nummer ist die Taste, die du im Orca-Panel belegst.
 - **Orca Status**: Verbindung zu Orca und Setup-Prüfung. Grün mit „OK“, wenn alles läuft. Drücken liest Orca sofort neu ein.
-- **Orca Attention**: Wie viele Agents auf dich warten. Drücken springt zum wartenden Agent, der am längsten wartet. Jeder weitere Druck springt zum nächsten.
+- **Orca Attention**: Wie viele Agents auf dich warten. Die Taste **blinkt**, solange einer wartet. Drücken springt zum Agent, der am längsten wartet, jeder weitere Druck zum nächsten.
+- **Orca Working**: Wie viele Agents gerade arbeiten. Drücken springt zu dem, der am längsten arbeitet, jeder weitere Druck zum nächsten.
+
+Attention und Working zählen **alle** Agents in Orca, auch Chats, die auf keiner Pane-Taste liegen. Wer nicht jeden Chat einzeln auf eine Taste legen will, kommt mit diesen beiden Tasten plus Status aus.
 
 Options+ schaltet das Keypad-Profil um, wenn Orca vorn ist. Leg die Tasten deshalb ins Profil **Orca** und ins **Standardprofil**, sonst verschwinden sie, sobald eine andere App vorn ist.
 

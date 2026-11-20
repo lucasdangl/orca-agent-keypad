@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented here. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning: [SemVer](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- **Working key** (`Orca Working`): how many agents work right now, on a key or not; a press jumps to the one working longest, again to the next.
+- **The Attention key blinks** while an agent needs you (twice a second, the count stays readable in the dark phase).
+
+### Changed
+
+- Plugin A is named Agent Keypad in the Setup checks too, and their install link points to this fork.
+
 ## [0.4.0] - 2026-11-20
 
 First release of **Agent Keypad for Orca**, this fork for the Logi MX Creative Keypad.

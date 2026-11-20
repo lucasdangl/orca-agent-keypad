@@ -15,7 +15,7 @@ Reference for the messages between **Logi**, the C# plugin that the Logi Plugin 
 | type | Fields | Meaning |
 | --- | --- | --- |
 | `hello` | `pluginVersion: string`, `device: { model: string, cols: int, rows: int }`, `imageSize: int`, `settings: object` | First message. `device` is the grid of the keypad (MX Creative Keypad: 3 x 3), `imageSize` the key size in px (116). `settings` is what the daemon last sent in `saveSettings` (`{}` on the first run). A second `hello` (the plugin reloaded) is answered again and may change the grid. |
-| `keys` | `keys: { slotId: string, kind: "pane" \| "status" \| "attention", index?: int }[]` | Every key that shows one of our commands, the whole list each time. `slotId` is stable: `logi:slot-<n>` for the Pane command with parameter `slot-<n>`, `logi:status`, `logi:attention`. `index` is the 1-based key number on the grid (`slot-<n>` = n). It numbers the key and is the position the Orca panel draws it at. |
+| `keys` | `keys: { slotId: string, kind: "pane" \| "status" \| "attention" \| "working", index?: int }[]` | Every key that shows one of our commands, the whole list each time. `slotId` is stable: `logi:slot-<n>` for the Pane command with parameter `slot-<n>`, `logi:status`, `logi:attention`. `index` is the 1-based key number on the grid (`slot-<n>` = n). It numbers the key and is the position the Orca panel draws it at. |
 | `key` | `slotId: string`, `edge: "down" \| "up"` | A key went down or up. Logi sends `Press` as `down` and `Release` as `up`. It drops `LongPress` and `RepeatPress`: the daemon decides tap or hold (1 s) itself, as on the Stream Deck. |
 | `deviceState` | `connected: boolean` | The keypad was plugged in or out. Before the first one the daemon assumes connected. |
 

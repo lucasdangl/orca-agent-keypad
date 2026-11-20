@@ -18,6 +18,7 @@ namespace Loupedeck.OrcaKeypadPlugin
         public const Int32 Slots = 9;
         public const String StatusSlot = "logi:status";
         public const String AttentionSlot = "logi:attention";
+        public const String WorkingSlot = "logi:working";
 
         // The MX Creative Keypad asks for 116 px images (docs/logi-findings.md); the Options+ UI asks other sizes.
         private const PluginImageSize KeypadSize = PluginImageSize.Width116;
@@ -189,6 +190,10 @@ namespace Loupedeck.OrcaKeypadPlugin
                 else if (slot == AttentionSlot)
                 {
                     k["kind"] = "attention";
+                }
+                else if (slot == WorkingSlot)
+                {
+                    k["kind"] = "working";
                 }
                 else if (TryPaneIndex(slot, out var n))
                 {

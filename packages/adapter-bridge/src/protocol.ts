@@ -96,10 +96,10 @@ export const deckState = base('deckState').extend({
   keys: z.array(z.object({ key, label: z.string(), state: z.string(), mapped: z.boolean() })),
   /**
    * What sits at every position of the deck (`cols * rows` entries, 1-based row-major, sorted): `pane`, our `status` or
-   * `attention` key, or `other` (empty, or another plugin's action: the SDK does not say). Absent from an older B.
+   * `attention` or `working` key, or `other` (empty, or another plugin's action: the SDK does not say). Absent from an older B.
    */
   layout: z
-    .array(z.object({ key, kind: z.enum(['pane', 'status', 'attention', 'other']) }))
+    .array(z.object({ key, kind: z.enum(['pane', 'status', 'attention', 'working', 'other']) }))
     .optional(),
   /** The panes the panel offers for a key (at most 200, the focused one first); absent from an older B. */
   panes: z

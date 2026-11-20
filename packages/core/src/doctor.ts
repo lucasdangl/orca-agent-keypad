@@ -235,8 +235,8 @@ export function runChecks(f: DoctorFacts): Check[] {
       result: 'warn',
       reason:
         'The Orca plugin and the Stream Deck plugin do not speak the same bridge version, so the Orca plugin cannot connect; the deck works with slower, polled status',
-      caption: 'Update Agent Deck for Orca',
-      hint: 'Update Agent Deck for Orca: both plugins must come from the same release (the older one needs the update)',
+      caption: 'Update Agent Keypad for Orca',
+      hint: 'Update Agent Keypad for Orca: both plugins must come from the same release (the older one needs the update)',
     });
   } else if (f.orcaPlugin === 'missing') {
     checks.push({
@@ -244,9 +244,9 @@ export function runChecks(f: DoctorFacts): Check[] {
       label: 'Orca plugin',
       result: 'warn',
       reason:
-        'The Agent Deck for Orca plugin is not installed (or is disabled) in Orca; the deck works with slower, polled status',
+        'The Agent Keypad for Orca plugin is not installed (or is disabled) in Orca; the deck works with slower, polled status',
       caption: 'Install the Orca plugin',
-      hint: 'Install it in Orca with the link, accept its access consent, then run "Agent Deck: Show status"',
+      hint: 'Install it in Orca with the link, accept its access consent, then run "Agent Keypad: Show status"',
       fix: { action: 'open-url', label: 'Install the Orca plugin', url: ORCA_PLUGIN_INSTALL_URL },
     });
   } else if (f.orcaPlugin === 'connected' || f.orcaPlugin === 'asleep') {

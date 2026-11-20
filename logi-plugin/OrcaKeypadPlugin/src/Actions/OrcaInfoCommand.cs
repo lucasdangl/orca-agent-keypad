@@ -2,7 +2,7 @@ namespace Loupedeck.OrcaKeypadPlugin
 {
     using System;
 
-    // "Orca Status" and "Orca Attention": one key each, drawn and handled by the daemon like the Pane keys.
+    // "Orca Status", "Orca Attention" and "Orca Working": one key each, drawn and handled by the daemon like the Pane keys.
     public abstract class OrcaInfoCommand : PluginDynamicCommand
     {
         private readonly String _slot;

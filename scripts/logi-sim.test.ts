@@ -148,3 +148,38 @@ describe('logi daemon with an Orca agent chat', () => {
     expect(o.runtime.requests.some((r) => r.method === 'terminal.focus')).toBe(false);
   }, 30_000);
 });
+
+describe('logi daemon with the Attention and Working keys', () => {
+  let o: FakeOrcaEnv;
+  let d: LogiSim;
+
+  afterEach(async () => {
+    d?.kill();
+    await o?.stop();
+  });
+
+  it('counts working agents, blinks Attention while one waits, and both keys jump there', async () => {
+    o = await FakeOrcaEnv.create((st) => {
+      addPane(st, 'a', { title: 'agent a' });
+      addChat(st, 'c', { name: 'Fix the login' });
+    });
+    d = new LogiSim(DAEMON_SOURCE, o.env);
+    d.hello();
+    d.keys(0, { attention: true, working: true });
+    await d.until(() => d.images.size === 2);
+
+    advance(o.s, 1000);
+    setAgent(o.s, 'a', 'working', 'Bash');
+    await d.until(() => d.shown('logi:working')?.line2 === '1');
+    d.tap('logi:working');
+    await d.until(() => o.s.focusedHandle === o.handle('a'));
+
+    advance(o.s, 1000);
+    setAgent(o.s, 'c', 'waiting');
+    await d.until(() => d.shown('logi:attention')?.state === 'needs_input');
+    // Blinking: the key alternates with its dark phase.
+    await d.until(() => (d.images.get('logi:attention') ?? '').includes('fill="#1c1c1c"'));
+    d.tap('logi:attention');
+    await d.until(() => o.s.focusedHandle === 'chat-c');
+  }, 30_000);
+});

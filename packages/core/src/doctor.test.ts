@@ -206,7 +206,7 @@ describe('outdated Orca plugin', () => {
     expect(worstCheck(runChecks({ ...good, orcaPlugin: 'outdated' }))).toMatchObject({
       id: 'orca-plugin',
       result: 'warn',
-      caption: 'Update Agent Deck for Orca',
+      caption: 'Update Agent Keypad for Orca',
     });
   });
 });

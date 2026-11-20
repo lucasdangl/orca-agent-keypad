@@ -1,7 +1,7 @@
 import type { DeckHostInfo } from '@orca-agent-deck/core';
 
 /** What one of our keys is for. */
-export type KeyKind = 'pane' | 'status' | 'attention';
+export type KeyKind = 'pane' | 'status' | 'attention' | 'working';
 
 /** One key the user put one of our actions on. */
 export interface KeyBinding {

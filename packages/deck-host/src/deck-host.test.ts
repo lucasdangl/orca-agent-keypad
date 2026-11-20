@@ -177,3 +177,75 @@ describe('deck-host with an Orca agent chat', () => {
     await until(() => port.shown('fake:slot-3')?.label === 'Fix the login');
   });
 });
+
+// The two keys for working with chats instead of one key per chat: Attention blinks while an agent needs you and
+// jumps there; Working counts the agents at work and jumps through them. Both count agents on no key too.
+describe('deck-host Attention and Working keys', () => {
+  const ATT = 'fake:attention';
+  const WORK = 'fake:working';
+  const shown = (slot: string) => port.shown(slot);
+  const svg = (slot: string) => port.images.get(slot) ?? '';
+  /** A fresh read of Orca (the keys' own refresh is throttled), then the key drawn from it. */
+  const read = async (keys: { repaint(): Promise<void> }) => {
+    await (await host.controller()).refresh([], { force: true });
+    await keys.repaint();
+  };
+
+  beforeEach(async () => {
+    port.setKeys([
+      ...port.paneKeys(3),
+      { slotId: ATT, kind: 'attention', device: 'fake' },
+      { slotId: WORK, kind: 'working', device: 'fake' },
+    ]);
+    await host.attention.syncKeys();
+    await host.working.syncKeys();
+  });
+
+  it('Working counts the agents at work, on a key or not, and a press walks them longest first', async () => {
+    await read(host.working);
+    expect(shown(WORK)).toMatchObject({ state: 'unmapped', line2: '0' });
+    advance(s, 1000);
+    setAgent(s, 'b', 'working', 'Bash'); // b is on no key
+    advance(s, 1000);
+    setAgent(s, 'c', 'working', 'Edit'); // the chat, on no key
+    await read(host.working);
+    expect(shown(WORK)).toMatchObject({ state: 'working', line2: '2', label: 'working' });
+
+    port.key(WORK, 'down');
+    await until(() => s.focusedHandle === s.panes.find((p) => p.key === 'b')!.handle);
+    port.key(WORK, 'down');
+    await until(() => s.focusedHandle === 'chat-c');
+  });
+
+  it('Attention blinks while an agent needs you and stops when none does', async () => {
+    await read(host.attention);
+    const calm = svg(ATT);
+    await host.attention.blinkTick();
+    expect(svg(ATT)).toBe(calm); // nothing to blink
+
+    advance(s, 1000);
+    setAgent(s, 'c', 'waiting');
+    await read(host.attention);
+    expect(shown(ATT)).toMatchObject({ state: 'needs_input', line2: '1' });
+    const bright = svg(ATT);
+    await host.attention.blinkTick();
+    const dark = svg(ATT);
+    expect(dark).not.toBe(bright);
+    expect(dark).toContain('fill="#1c1c1c"');
+    // The dark phase keeps the count readable.
+    expect(shown(ATT)).toMatchObject({ state: 'needs_input', line2: '1' });
+    await host.attention.blinkTick();
+    expect(svg(ATT)).toBe(bright);
+
+    // A press opens the waiting chat, though it is on no key.
+    port.key(ATT, 'down');
+    await until(() => s.focusedHandle === 'chat-c');
+
+    advance(s, 1000);
+    setAgent(s, 'c', 'working');
+    await host.attention.blinkTick(); // dark again, then the answer arrives
+    await read(host.attention);
+    expect(shown(ATT)).toMatchObject({ state: 'unmapped', line2: '0' });
+    expect(svg(ATT)).not.toContain('fill="#1c1c1c"');
+  });
+});

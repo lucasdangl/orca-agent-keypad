@@ -169,8 +169,8 @@ export class LogiSim {
     });
   }
 
-  /** Pane slots 1..n (`logi:slot-<n>`), plus a Status key when asked. */
-  keys(n: number, extra: { status?: boolean; attention?: boolean } = {}): void {
+  /** Pane slots 1..n (`logi:slot-<n>`), plus Status, Attention and Working keys when asked. */
+  keys(n: number, extra: { status?: boolean; attention?: boolean; working?: boolean } = {}): void {
     this.send({
       type: 'keys',
       keys: [
@@ -181,6 +181,7 @@ export class LogiSim {
         })),
         ...(extra.status ? [{ slotId: 'logi:status', kind: 'status' }] : []),
         ...(extra.attention ? [{ slotId: 'logi:attention', kind: 'attention' }] : []),
+        ...(extra.working ? [{ slotId: 'logi:working', kind: 'working' }] : []),
       ],
     });
   }

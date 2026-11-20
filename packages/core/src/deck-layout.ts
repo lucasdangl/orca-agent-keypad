@@ -1,7 +1,7 @@
 import { keyNumber } from './keynumber.ts';
 
 /** What sits at one position of the deck, as far as a plugin can tell. */
-export type CellKind = 'pane' | 'status' | 'attention' | 'other';
+export type CellKind = 'pane' | 'status' | 'attention' | 'working' | 'other';
 
 export interface LayoutCell {
   /** 1-based, row-major, as everywhere else (`keyNumber`). */

@@ -61,6 +61,8 @@ export interface Overview {
   topState: DeckState | null;
   /** Urgent panes that are on no key (overflow): the Attention key shows them as "+N". */
   offDeck: number;
+  /** Number of agents working right now, on a key or not (the Working key). */
+  working: number;
   /** Reads are served by the runtime socket (no CLI spawns). */
   fast: boolean;
 }
@@ -240,6 +242,7 @@ export class DeckController {
     fast: false,
   };
   private attentionCursor = 0;
+  private workingCursor = 0;
   private refreshedAt = 0;
   /** When the adapter was last read (see `OrcaAdapter.minReadIntervalMs`). */
   private polledAt = 0;
@@ -847,6 +850,7 @@ export class DeckController {
       urgent: urgent.length,
       topState: urgent[0]?.state ?? null,
       offDeck: urgent.filter((u) => !onKeys.has(u.pane.paneKey)).length,
+      working: this.workingPanes().length,
       fast: this.health.fast,
     };
   }
@@ -863,32 +867,26 @@ export class DeckController {
     return r;
   }
 
+  /** Focuses a working agent: the one working longest first, repeated presses walk the list and wrap around. */
+  async pressWorking(): Promise<PressResult> {
+    const working = this.workingPanes();
+    if (working.length === 0) return 'unmapped';
+    this.workingCursor %= working.length;
+    const pane = working[this.workingCursor]?.pane;
+    this.workingCursor++;
+    return this.focus(pane);
+  }
+
+  /** Agents working right now, on a key or not; the one working longest first. */
+  private workingPanes(): { pane: PaneInfo; state: DeckState }[] {
+    return this.agentStates()
+      .filter((e) => e.state === 'working')
+      .sort((a, b) => a.lastActivityAt - b.lastActivityAt);
+  }
+
   private urgentPanes(): { pane: PaneInfo; state: DeckState }[] {
-    if (!this.orcaRunning) return [];
-    const down = new Set(this.snapshot.omittedHostIds);
     return (
-      this.snapshot.panes
-        .filter((p) => (p.agentType || endedBadly(p)) && !p.orphaned)
-        .map((pane) => {
-          const status = this.snapshot.statuses.find((e) => e.paneKey === pane.paneKey);
-          const { state } = deriveDeckState({
-            mapped: true,
-            orcaRunning: true,
-            found: true,
-            connected: pane.connected,
-            hostDown: down.has(pane.hostId),
-            agentType: pane.agentType,
-            agent: status
-              ? {
-                  state: status.state,
-                  outcome: status.outcome ?? null,
-                  awaiting: status.awaiting ?? null,
-                }
-              : null,
-            exitCause: pane.exitCause ?? null,
-          });
-          return { pane, state, lastActivityAt: status?.stateStartedAt ?? 0 };
-        })
+      this.agentStates()
         // Permission prompts and questions wait for an answer; an error drops out once acknowledged.
         .filter(
           (e) =>
@@ -899,6 +897,34 @@ export class DeckController {
         // Most urgent state first; within a state the pane that has waited longest.
         .sort((a, b) => rank(a) - rank(b) || a.lastActivityAt - b.lastActivityAt)
     );
+  }
+
+  /** Every agent pane (or one that ended badly) with its key state, as a mapped key would show it. */
+  private agentStates(): { pane: PaneInfo; state: DeckState; lastActivityAt: number }[] {
+    if (!this.orcaRunning) return [];
+    const down = new Set(this.snapshot.omittedHostIds);
+    return this.snapshot.panes
+      .filter((p) => (p.agentType || endedBadly(p)) && !p.orphaned)
+      .map((pane) => {
+        const status = this.snapshot.statuses.find((e) => e.paneKey === pane.paneKey);
+        const { state } = deriveDeckState({
+          mapped: true,
+          orcaRunning: true,
+          found: true,
+          connected: pane.connected,
+          hostDown: down.has(pane.hostId),
+          agentType: pane.agentType,
+          agent: status
+            ? {
+                state: status.state,
+                outcome: status.outcome ?? null,
+                awaiting: status.awaiting ?? null,
+              }
+            : null,
+          exitCause: pane.exitCause ?? null,
+        });
+        return { pane, state, lastActivityAt: status?.stateStartedAt ?? 0 };
+      });
   }
 
   private async focus(pane: PaneInfo | undefined): Promise<PressResult> {
