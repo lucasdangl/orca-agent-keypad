@@ -96,12 +96,51 @@ namespace Loupedeck.OrcaKeypadPlugin
             {
                 PluginLog.Info($"spikeA: first GetCommandImage for imageSize={imageSize} ({(Int32)imageSize}) param={actionParameter} -> builder {builder.Width}x{builder.Height}");
             }
+            var svgImage = this.TrySvg(actionParameter, builder.Width, imageSize);
+            if (svgImage != null)
+            {
+                return svgImage;
+            }
+
             UInt32[] colors = { 0x1E5AA8, 0xC8A000, 0x2E8B57, 0x8B2E2E };
             var png = PngEncoder.SolidWithBar(builder.Width, colors[count % colors.Length], (count % 10) / 9.0);
             var bg = BitmapImage.FromArray(png);
             builder.SetBackgroundImage(bg);
             builder.DrawText($"P{n}\n{count}");
             return builder.ToImage();
+        }
+
+        // FromSvg test: when <plugin data dir>/svg/<param>.svg exists (written from core/render.ts),
+        // show it via BitmapImage.FromSvg, sized to the requested key, and log the cost once per slot/size.
+        private BitmapImage TrySvg(String actionParameter, Int32 size, PluginImageSize imageSize)
+        {
+            if (actionParameter == null)
+            {
+                return null;
+            }
+            var path = System.IO.Path.Combine(this.Plugin.GetPluginDataDirectory(), "svg", actionParameter + ".svg");
+            if (!System.IO.File.Exists(path))
+            {
+                return null;
+            }
+            try
+            {
+                var xml = System.IO.File.ReadAllText(path)
+                    .Replace("width=\"144\" height=\"144\" viewBox", $"width=\"{size}\" height=\"{size}\" viewBox");
+                var sw = System.Diagnostics.Stopwatch.StartNew();
+                var img = BitmapImage.FromSvg(xml);
+                var ms = sw.Elapsed.TotalMilliseconds;
+                if (this._seenSizes.TryAdd($"svg:{actionParameter}:{imageSize}", true))
+                {
+                    PluginLog.Info($"spikeSvg: {actionParameter} {imageSize} FromSvg {ms:F2} ms -> {img.Width}x{img.Height} vector={img.IsVectorImage} bytes={xml.Length}");
+                }
+                return img;
+            }
+            catch (Exception ex)
+            {
+                PluginLog.Error(ex, $"spikeSvg: FromSvg failed for {actionParameter}");
+                return null;
+            }
         }
 
         // Called by the service for raw button events (if it routes them to commands at all).

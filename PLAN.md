@@ -110,14 +110,14 @@ Ziel: Die Logik aus `streamdeck-plugin` läuft ohne `@elgato/streamdeck`.
   | Logi → Daemon | `keys` | `keys: {slotId, kind, index}[]` (welche Slots in Options+ belegt sind) |
   | Logi → Daemon | `press` | `slotId`, `gesture: 'tap' \| 'hold'` |
   | Logi → Daemon | `deviceState` | `connected: boolean` |
-  | Daemon → Logi | `image` | `slotId`, `png: base64` |
+  | Daemon → Logi | `image` | `slotId`, `svg: string` (Phase 0: `BitmapImage.FromSvg` rendert `render.ts` korrekt, siehe `docs/logi-findings.md`) |
   | Daemon → Logi | `saveSettings` | `settings: object` |
   | Daemon → Logi | `alert` | `slotId` (kurzes Fehlerfeedback) |
 
-- [ ] SVG → PNG im Daemon mit `@resvg/resvg-js`, auf die Größe aus `hello.imageSize`. `render.ts` erzeugt 144 Einheiten und skaliert sauber.
+- [ ] ~~SVG → PNG im Daemon mit `@resvg/resvg-js`~~ Entfällt laut Phase 0: Der Daemon schickt das SVG aus `render.ts` unverändert, das C#-Plugin setzt `width`/`height` auf die angeforderte Größe und nutzt `BitmapImage.FromSvg`.
 - [ ] Bildrate drosseln, auf das Ergebnis aus Phase 0 abgestimmt. Nur geänderte Bilder senden (diese Logik gibt es schon: „setImage only if changed“). Das Spinner-Tempo über `spinnerAdvances` anpassen.
 - [ ] `watchHost({ parent: process.ppid })` bleibt: Der Daemon beendet sich, wenn das C#-Plugin weg ist. Zusätzlich beendet er sich bei EOF auf stdin.
-- [ ] Bundle mit rollup, analog zu `packages/streamdeck-plugin/rollup.config.mjs`, zu **einer** Datei `daemon.mjs` ohne native Abhängigkeiten außer resvg. resvg-Binary für `darwin-arm64` mitliefern.
+- [ ] Bundle mit rollup, analog zu `packages/streamdeck-plugin/rollup.config.mjs`, zu **einer** Datei `daemon.mjs` ohne native Abhängigkeiten.
 - [ ] Testharness `scripts/logi-sim.ts`: spielt das C#-Plugin über stdin/stdout nach und schreibt die Bilder als PNG nach `tmp/keys/`. Damit lässt sich ohne Hardware testen.
 
 **Abnahme:** `fake-orca` und `logi-sim` laufen, Status-Wechsel erscheinen als PNG-Dateien, ein simulierter `press` fokussiert den Pane im Fake.

@@ -10,7 +10,8 @@ Quellen je Aussage: **[Doku]** = <https://logitech.github.io/actions-sdk-docs/>,
 |---|---|
 | 1. C# SDK auf macOS | Funktioniert mit `dotnet` CLI. `logiplugintool generate`, `dotnet build` legt den `.link` an und lädt das Plugin automatisch neu. |
 | 2. Bildgröße | Das Keypad fordert **`PluginImageSize.Width116` = 116×116 px** an. Options+ fragt beim Druck einmal zusätzlich `Width90` (80×80) an. **Der Daemon rendert 116 px.** |
-| 2. PNG aus Bytes | **Ja:** `BitmapImage.FromArray(byte[])`, auch mit fremd erzeugten PNGs (eigener Encoder im Spike). Es gibt auch `FromBase64String` und `FromSvg`. |
+| 2. PNG aus Bytes | **Ja:** `BitmapImage.FromArray(byte[])`, auch mit fremd erzeugten PNGs (eigener Encoder im Spike). |
+| 2. SVG direkt | **Ja, und das ist der empfohlene Weg:** `BitmapImage.FromSvg(xml)` stellt die SVGs aus `core/render.ts` auf dem Keypad korrekt dar (Sichtvergleich mit dem Browser). **Der Daemon schickt SVG, resvg entfällt.** |
 | 2. Update-Rate | 9 Tasten bei 66 ms (≈15 fps je Taste) laufen flüssig. **33 ms hängt sichtbar**, obwohl der Service jeden Aufruf bedient. Empfehlung: **≤ 10 fps je Taste**, Spinner mit 100–125 ms. |
 | 3. Key-Down/Up | **Ja.** `ProcessButtonEvent2` liefert `Press`, `LongPress` (nach ~500 ms), `RepeatPress` (alle ~33 ms) und `Release`. **Hold lässt sich nativ umsetzen,** ein Befehl „Taste zuordnen“ ist unnötig. |
 | 4. Parametrisierte Befehle | **Ja.** Ein Befehl `Orca Pane` mit `slot-1 … slot-9` erscheint in Options+ als 9 einzelne Befehle in der Gruppe „Orca Panes“. |
@@ -54,7 +55,11 @@ Quellen je Aussage: **[Doku]** = <https://logitech.github.io/actions-sdk-docs/>,
   - `BitmapImage.FromArray(byte[])` lädt ein PNG, das unser eigener Encoder erzeugt hat. Das ist dasselbe Szenario wie resvg im Daemon.
   - `TryCreateFromArray` gibt es als Variante ohne Exception.
   - Weitere Wege: `FromBase64String`, `FromSvg(xml)`, `FromFile`.
-  - Den Weg `FromSvg` haben wir **nicht** getestet. Er könnte resvg im Daemon ersparen, das ist aber offen (siehe unten).
+  - **`FromSvg` getestet [Test]:** 8 Tasten mit echten `renderKey`-SVGs. Getestete Zustände: working mit Spinner, needs_input, awaiting_reply, completed fokussiert mit Rahmen, idle, offline, unmapped und Host-Badge.
+    - Das Plugin ersetzt nur `width/height="144"` durch die angeforderte Größe (`viewBox` bleibt 144) und ruft `BitmapImage.FromSvg(xml)` auf.
+    - Text, Schrift (`Helvetica…`-Stack), Umbrüche, Agent-Badges, Zustandsicons und Fokus-Rahmen stimmen im Sichtvergleich mit dem Browser überein.
+    - `FromSvg` kostet < 1 ms und liefert ein Vektorbild (`IsVectorImage=true`, `Width/Height=-1`). Gerastert wird erst im Service, auf die Größe der Taste.
+    - Die Update-Raten aus der Tabelle unten wurden mit PNG gemessen. SVG-Rasterung im Service ist bei 1 s Intervall unauffällig. Bei hohen Raten haben wir nicht gemessen, das ist für unsere ≤ 10 fps auch nicht nötig.
 - Neu zeichnen: `ActionImageChanged("slot-n")` löst genau einen `GetCommandImage`-Aufruf für diesen Parameter aus **[Test]**.
 - **Belegung erkennen [Test]:** Der Service ruft `GetCommandImage` nur für Parameter auf, die gerade auf einer sichtbaren Taste liegen. Slot 9 bekam nach dem Tausch gegen die Rate-Taste 0 Aufrufe.
   - Ein API-Event „Belegung geändert“ gibt es nicht (Doku und API geben nichts her).
@@ -161,9 +166,14 @@ Gemessen mit `NodeChild.cs` **[Test]**:
 - Auf dem Rechner ist schon ein Fremd-Plugin installiert („ClaudeConsole“). Es meldet beim Start „already loaded“. Das ist harmlos und betrifft uns nicht.
 - `ProcessButtonEvent2` und `GetCommandImage` laufen auf wechselnden Threadpool-Threads. Der Bild-Cache in Phase 3 muss threadsicher sein (`ConcurrentDictionary`).
 
+## Folge für Phase 2
+
+- Device-Protokoll: `image` trägt `svg: string` (UTF-8, wie `renderKey` es liefert) statt `png: base64`.
+- Kein `@resvg/resvg-js`, kein natives Binary im Bundle. `daemon.mjs` ist reines JS.
+- `hello.imageSize` wird trotzdem übertragen, weil das C#-Plugin die SVG-Größe pro Aufruf setzt (116 bzw. 80).
+
 ## Offen (bewusst nicht in Phase 0)
 
 - **`AutoRepeatOnLongPress = false`** ist als Property in der API vorhanden, aber nicht getestet. Für unsere Logik ist es egal, weil wir `RepeatPress` ignorieren.
-- **`BitmapImage.FromSvg`:** Rendert der Service die SVGs aus `render.ts` korrekt (Fonts, Filter)? Falls ja, könnte der Daemon SVG statt PNG schicken und resvg entfiele. Ein kurzer Test lohnt sich vor Phase 2. Bis dahin bleibt PLAN.md bei PNG über resvg.
 - **Absturz des Plugin Service:** Erwartet ist, dass stdin EOF und der Wechsel der ppid den Daemon beenden. Das haben wir nicht getestet, weil wir dafür den Service hart beenden müssten. Das gehört zur Abnahme von Phase 3 („Options+ beenden“).
 - **Mehrere Seiten / Profile:** Wie oft der Service beim Seitenwechsel `GetCommandImage` aufruft, ist nicht gemessen.
