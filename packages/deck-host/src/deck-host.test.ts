@@ -322,7 +322,10 @@ describe('deck-host keypad control keys', () => {
       timers: false,
       autofillChatsOnly: true,
       holdResets: true,
-      audioPlaying: async () => true,
+      pauseMusic: async () => {
+        kport.sentKeys.push('(music paused)' as never);
+        return async () => void kport.sentKeys.push('(music played)' as never);
+      },
     });
     await kp.start();
     kport.setKeys(kport.paneKeys(9));
@@ -352,11 +355,11 @@ describe('deck-host keypad control keys', () => {
     await until(() => kport.sentKeys.length >= 5, 3000);
     // Music playing: paused before the dictation, played again after it; the chat in front has no focus to restore.
     expect(kport.sentKeys).toEqual([
-      'MediaPlayPause',
+      '(music paused)',
       'Cmd+E',
       'Cmd+E',
       'Return',
-      'MediaPlayPause',
+      '(music played)',
     ]);
   });
 });

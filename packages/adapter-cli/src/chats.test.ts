@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { CliAdapter, type Exec } from './index.ts';
+import { CliAdapter, chatInputIndex, type Exec } from './index.ts';
 
 // Orca's agent chats (structured agent sessions) are no terminals: `worktree ps` lists their agent,
 // `terminal.reveal` opens them, `session.tabs.list` says when one is in front (docs/logi-findings.md §8).
@@ -170,4 +170,25 @@ it('focusedPaneKey does not ask for session tabs in a worktree without chats', a
   });
   expect(await a.focusedPaneKey()).toBe('t1:l1');
   expect(calls.some((c) => c[0] === 'session')).toBe(false);
+});
+
+it('finds the chat input in the accessibility tree of Orca computer use, in any language', () => {
+  const tree = (input: string) =>
+    [
+      'App=com.stablyai.orca (pid 1)',
+      '\t\t366 text Mail me @ home / office',
+      `\t\t\t67 ${input}`,
+      'The focused UI element is 373 textfeld (settable) Search templates.',
+    ].join('\n');
+  expect(
+    chatInputIndex(tree('textbereich (settable) Ask anything, @ to mention files, / for commands')),
+  ).toBe(67);
+  expect(
+    chatInputIndex(
+      tree(
+        'bereich für texteinträge (settable) Frage stellen, @ für Dateiverweise, / für Befehle, Value: Hallo @x',
+      ),
+    ),
+  ).toBe(67);
+  expect(chatInputIndex(tree('textfeld (settable) Search, Value: a@b/c'))).toBeNull();
 });

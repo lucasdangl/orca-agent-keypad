@@ -1,5 +1,5 @@
 import type { Readable, Writable } from 'node:stream';
-import { DeckHost, audioPlaying, type DeckHostOptions } from '@orca-agent-deck/deck-host';
+import { DeckHost, pauseMusic, type DeckHostOptions } from '@orca-agent-deck/deck-host';
 import { LogiPort } from './logi-port.ts';
 
 export const DAEMON_VERSION = '0.4.0';
@@ -28,7 +28,7 @@ export async function runDaemon(o: DaemonOptions): Promise<{ why: string }> {
   const host = new DeckHost(port, {
     autofillChatsOnly: true,
     holdResets: true,
-    audioPlaying,
+    pauseMusic: pauseMusic(),
     ...o.host,
   });
   let gone: (why: string) => void = () => {};

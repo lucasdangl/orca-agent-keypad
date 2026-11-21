@@ -20,6 +20,7 @@ import {
   type LayoutCell,
   type SlotView,
 } from '@orca-agent-deck/core';
+import type { PauseMedia } from './audio.ts';
 import type { DevicePort, KeyBinding, KeyKind } from './port.ts';
 
 const HINT_MS = 3000;
@@ -92,8 +93,8 @@ export class PaneKeys {
   /** Runs after every refresh (the Stream Deck Property Inspector re-sends its pane list from here). */
   onRefreshed: (() => Promise<void>) | null = null;
 
-  /** Is sound playing (music to pause while dictating)? */
-  private readonly audioPlaying: () => Promise<boolean>;
+  /** Pauses playing music while dictating. */
+  private readonly pauseMusic: PauseMedia;
   /** Holding a key sets it back to auto-fill instead of opening the Orca panel. */
   private readonly holdResets: boolean;
   /** Brings Orca to the front (the same raise a focus press uses); a no-op where the OS does not allow it. */
@@ -108,11 +109,11 @@ export class PaneKeys {
       holdMs?: number;
       timers?: boolean;
       holdResets?: boolean;
-      audioPlaying?: () => Promise<boolean>;
+      pauseMusic?: PauseMedia;
     } = {},
   ) {
     this.holdResets = o.holdResets === true;
-    this.audioPlaying = o.audioPlaying ?? (() => Promise.resolve(false));
+    this.pauseMusic = o.pauseMusic ?? (() => Promise.resolve(null));
     this.port = port;
     this.create = create;
     this.panel = panel;
@@ -258,8 +259,11 @@ export class PaneKeys {
       this.pauseMedia();
       // In the key queue, so a Send pressed meanwhile comes after the Cmd+E.
       this.sending = this.sending.then(async () => {
-        const r = await (await this.controller()).focusFront().catch(() => 'failed');
+        const deck = await this.controller();
+        const r = await deck.focusFront().catch(() => 'failed');
         if (r === 'focused') await new Promise((res) => setTimeout(res, 250));
+        const input = await deck.focusChatInput().catch(() => false);
+        this.port.log('info', `control: mic front=${r} input=${input ? 'focused' : 'not found'}`);
         await this.port.sendKey?.('Cmd+E').catch(() => {});
       });
       return;
@@ -271,27 +275,27 @@ export class PaneKeys {
     if (was) this.resumeMedia();
   }
 
-  /** Music we paused for a dictation (resumed when it ends). */
-  private pausedMedia = false;
+  /** Plays the music we paused for a dictation again (set while one runs). */
+  private pausedMedia: (() => Promise<void>) | null = null;
 
-  /** Before a dictation: if sound is playing, press Play/Pause (in the key queue, so it lands before Cmd+E). */
+  /** Before a dictation: pause playing music (in the key queue, so it is quiet before Cmd+E). */
   private pauseMedia(): void {
     this.sending = this.sending.then(async () => {
-      if (this.pausedMedia || !(await this.audioPlaying())) return;
-      this.pausedMedia = true;
-      this.port.log('info', 'media paused for dictation');
-      await this.port.sendKey?.('MediaPlayPause').catch(() => {});
+      if (this.pausedMedia) return;
+      this.pausedMedia = await this.pauseMusic().catch(() => null);
+      if (this.pausedMedia) this.port.log('info', 'media paused for dictation');
     });
   }
 
   /** After a dictation: play again what `pauseMedia` paused, nothing else. */
   private resumeMedia(): void {
     this.sending = this.sending.then(async () => {
-      if (!this.pausedMedia) return;
-      this.pausedMedia = false;
+      const play = this.pausedMedia;
+      if (!play) return;
+      this.pausedMedia = null;
       await new Promise((r) => setTimeout(r, 300));
       this.port.log('info', 'media resumed after dictation');
-      await this.port.sendKey?.('MediaPlayPause').catch(() => {});
+      await play().catch(() => {});
     });
   }
 

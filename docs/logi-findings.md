@@ -232,6 +232,13 @@ Gesehen am 2026-11-21 mit Plugin Service 6.4.2 **[Test]**: `BitmapImage.TryCreat
 - Schon 2 x 2 Einheiten in einem minimal anderen Ton reichen, dann stimmt das Bild.
 - Auf dem Keypad sah das aus wie ein kurzes weißes Flackern in der Matrix, wenn auf einer Taste gerade kein Zeichen lag. Abhilfe: Jede Taste zeichnet ein kleines, fast schwarzes Quadrat in die Ecke.
 
+## 12. Mic: Fokus und Musik
+
+Gesehen am 2026-11-21 mit Orca und Plugin Service 6.4.2 **[Test]**.
+
+- **Fokus:** `terminal.reveal` schaltet nur den Tab um. Der Tastaturfokus bleibt, wo er war, z. B. im Feld „Search templates“. Orcas Diktat (Cmd+E) springt aber nur ins Eingabefeld, wenn der Fokus im Chat liegt oder auf dem Body und genau ein Chat sichtbar ist. Abhilfe: Der Daemon klickt über `orca computer` (Accessibility-Baum) ins Feld „Ask anything, …“ des sichtbaren Chats und schickt erst danach Cmd+E. `get-app-state --query` dauert rund 0,2 s.
+- **Musik:** `VirtualKeyCode.MediaPlayPause` über `SendKeyboardShortcut` kam bei Spotify nicht an. Abhilfe: AppleScript (`player state`, `pause`, `play`) für Spotify und Apple Music, und nur wenn der Prozess läuft. Beim ersten Mal fragt macOS, ob der Logi-Dienst den Player steuern darf. Musik im Browser wird nicht pausiert.
+
 ## Folge für Phase 2
 
 - Device-Protokoll: `image` trägt `svg: string` (UTF-8, wie `renderKey` es liefert) statt `png: base64`.

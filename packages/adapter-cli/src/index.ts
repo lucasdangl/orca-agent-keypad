@@ -52,6 +52,27 @@ export * from './spawn-plan.ts';
 /** Runs `orca <args>` and returns stdout. Injectable for tests. */
 export type Exec = (args: string[]) => Promise<string>;
 
+/** Orca's app ids for `orca computer`: the release build first, then by name. */
+const ORCA_APPS = ['com.stablyai.orca', 'Orca'];
+/**
+ * The chat input's accessible name is its placeholder (`native-chat.composer.placeholder`), in Orca's language: "Ask
+ * anything, @ to mention files, / for commands", "Frage stellen, @ für Dateiverweise, / für Befehle", ... Every
+ * translation names `@` and `/`; the query narrows the tree to lines with an `@`.
+ */
+const CHAT_INPUT_QUERY = '@';
+
+/** Element index of the first chat input in an `orca computer get-app-state` tree, null when none is shown. */
+export function chatInputIndex(tree: string): number | null {
+  for (const line of tree.split('\n')) {
+    const [, index, rest = ''] = /^\s*(\d+) (.*)$/.exec(line) ?? [];
+    // The name ends where the value (the draft) starts.
+    const name = rest.split(', Value:')[0] ?? '';
+    if (index && name.includes('(settable)') && name.includes('@') && name.includes('/'))
+      return Number(index);
+  }
+  return null;
+}
+
 /** GUI apps (Stream Deck) start plugins with a minimal PATH that lacks the usual `orca` install dirs. */
 const EXTRA_PATH = process.platform === 'win32' ? [] : ['/usr/local/bin', '/opt/homebrew/bin'];
 
@@ -490,6 +511,47 @@ export class CliAdapter implements OrcaAdapter {
           a.paneKey.startsWith(`structured-agent-session-${sessionId}:`)),
     );
     return agent?.paneKey ?? null;
+  }
+
+  /**
+   * Puts the keyboard focus into the input of the chat Orca shows, through Orca's computer use (the accessibility
+   * tree): `terminal.reveal` only switches the tab and leaves the focus where it was (a search field, the sidebar),
+   * so Orca's dictation (Cmd+E) would not find the chat input (docs/logi-findings.md §12). False when no chat input is
+   * on screen or computer use is unavailable.
+   */
+  async focusChatInput(): Promise<boolean> {
+    for (const app of ORCA_APPS) {
+      try {
+        const state = JSON.parse(
+          await this.exec([
+            'computer',
+            'get-app-state',
+            '--app',
+            app,
+            '--query',
+            CHAT_INPUT_QUERY,
+            '--no-screenshot',
+            '--json',
+          ]),
+        ) as { result?: { snapshot?: { treeText?: string } } };
+        const index = chatInputIndex(state.result?.snapshot?.treeText ?? '');
+        if (index === null) return false;
+        await this.exec([
+          'computer',
+          'click',
+          '--app',
+          app,
+          '--element-index',
+          String(index),
+          '--no-screenshot',
+          '--json',
+        ]);
+        return true;
+      } catch {
+        // Not this app id (a dev build) or no computer use: try the next one.
+      }
+    }
+    return false;
   }
 
   /** `worktree set --read`: clears the unread dot in Orca. Local worktrees only. */

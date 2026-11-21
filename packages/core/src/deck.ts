@@ -806,6 +806,11 @@ export class DeckController {
     return pane ? this.focus(pane) : 'unmapped';
   }
 
+  /** Puts the keyboard focus into the input of the chat Orca shows (before dictating into it). */
+  async focusChatInput(): Promise<boolean> {
+    return (await this.adapter.focusChatInput?.().catch(() => false)) ?? false;
+  }
+
   /** Empties a slot and keeps it empty: auto-fill never touches a pinned slot without a pane. */
   clear(slot: string): void {
     this.diag?.(`slot ${short(slot)} emptied by the picker`);

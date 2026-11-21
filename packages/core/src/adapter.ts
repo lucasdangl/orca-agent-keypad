@@ -125,4 +125,6 @@ export interface OrcaAdapter {
   readonly focusHostId?: string | null;
   /** Clears Orca's unread dot for a worktree (`isUnread`), so reading in the deck clears it in Orca too. */
   markWorktreeRead?(worktreeId: string): Promise<void>;
+  /** Puts the keyboard focus into the input of the chat Orca shows; false when there is none. */
+  focusChatInput?(): Promise<boolean>;
 }

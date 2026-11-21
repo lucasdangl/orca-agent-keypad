@@ -186,6 +186,9 @@ export class BridgedAdapter implements OrcaAdapter {
   focusedPaneKey(maxAgeMs?: number): Promise<string | null> {
     return this.base.focusedPaneKey?.(maxAgeMs) ?? Promise.resolve(null);
   }
+  focusChatInput(): Promise<boolean> {
+    return this.base.focusChatInput?.() ?? Promise.resolve(false);
+  }
 }
 
 export type { PaneRef };

@@ -24,6 +24,7 @@ import { DeckBridge } from './bridge.ts';
 import { Doctor } from './doctor-facts.ts';
 import { InfoKeys } from './info-keys.ts';
 import { PaneKeys } from './pane-keys.ts';
+import type { PauseMedia } from './audio.ts';
 import type { DevicePort } from './port.ts';
 
 type Slots = Record<string, SlotSettings>;
@@ -54,8 +55,8 @@ export interface DeckHostOptions {
   autofillChatsOnly?: boolean;
   /** Holding a Pane key sets it back to auto-fill instead of opening the Orca panel (the Logi keypad). */
   holdResets?: boolean;
-  /** Is sound playing? Dictation pauses it and plays it again after (default: never). */
-  audioPlaying?: () => Promise<boolean>;
+  /** Pauses playing music while dictating and answers how to play it again (default: never pauses). */
+  pauseMusic?: PauseMedia;
   /** Polling and repaint timers (default on; tests drive refreshes themselves). */
   timers?: boolean;
 }
@@ -132,7 +133,7 @@ export class DeckHost {
         ...(o.holdMs !== undefined ? { holdMs: o.holdMs } : {}),
         ...timers,
         holdResets: o.holdResets === true,
-        ...(o.audioPlaying ? { audioPlaying: o.audioPlaying } : {}),
+        ...(o.pauseMusic ? { pauseMusic: o.pauseMusic } : {}),
       },
     );
     this.status = new InfoKeys(
