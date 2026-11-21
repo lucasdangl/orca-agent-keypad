@@ -1,5 +1,5 @@
-// The Agent Deck sidebar panel: the connected deck as a grid of numbered keys, shaped like the deck. A click on a
-// key marks it and shows its details under the grid (like the key settings in the Stream Deck app): what it shows,
+// The Agent Keypad sidebar panel: the connected deck as a grid of numbered keys, shaped like the deck. A click on a
+// key marks it and shows its details under the grid (like the key settings of a device app): what it shows,
 // Unmap, the focused pane and the panes Orca lists. The details stay open after a choice; Back closes them.
 // Opened from the status bar button or the shortcut it shows the key of the focused pane (details open), else the
 // bare grid. While the panel is in view with a key's details open, a tap on a deck key opens that key here.
@@ -36,12 +36,12 @@ const REASONS = {
   noFocusedPane:
     'No pane is focused in Orca (it reports none on a paired server): click a terminal, or pick a pane below.',
   noSuchPane: 'That pane is gone. Pick another one.',
-  deckOffline: 'The Stream Deck is not connected.',
+  deckOffline: 'The keypad is not connected.',
   noSuchKey: 'That key is not on the deck any more.',
   occupied: 'That key already shows a pane.',
-  timeout: 'The Stream Deck plugin did not answer.',
-  offline: 'The Stream Deck plugin is not running.',
-  update: 'Update the Stream Deck plugin: it is older than this one.',
+  timeout: 'The keypad plugin did not answer.',
+  offline: 'The keypad plugin is not running.',
+  update: 'Update the keypad plugin: it is older than this one.',
 };
 /** A request that never got a result: the Orca plugin did not answer, or it failed. */
 const failed = (e) =>
@@ -63,7 +63,7 @@ const MODELS = {
   11: 'Virtual Stream Deck',
   13: 'Stream Deck + XL',
 };
-const modelName = (m) => MODELS[m] ?? (m && Number.isNaN(Number(m)) ? m : 'Stream Deck');
+const modelName = (m) => MODELS[m] ?? (m && Number.isNaN(Number(m)) ? m : 'Keypad');
 
 /** The panel fits the sidebar and only the pane list scrolls: it takes the free height, down to this floor. */
 const PANE_LIST_MIN_PX = 120;
@@ -210,7 +210,7 @@ export function setup(ctx) {
 }
 
 function Status({ v }) {
-  if (!v) return <Text muted>Asking the Stream Deck plugin...</Text>;
+  if (!v) return <Text muted>Asking the keypad plugin...</Text>;
   if (v.status !== 'ok') return <Text tone="warning">{REASONS[v.status]}</Text>;
   const { deck } = v;
   if (!deck.connected) return <Text tone="warning">{REASONS.deckOffline}</Text>;
@@ -225,15 +225,17 @@ const pick = (p) => ({ paneKey: p.paneKey, ...(p.hostId ? { hostId: p.hostId } :
 
 /** What a position that is not one of our Pane keys is, for its tooltip. */
 const OTHER_KINDS = {
-  status: 'the Agent Deck status key',
-  attention: 'the Agent Deck attention key',
-  other: 'not an Agent Deck key',
+  status: 'the Agent Keypad status key',
+  attention: 'the Agent Keypad attention key',
+  working: 'the Agent Keypad working key',
+  done: 'the Agent Keypad done key',
+  other: 'not an Agent Keypad key',
 };
 
 /**
  * Every position of the deck, rows x columns as on the deck, as equal keys that fill the width. Pane keys are buttons
  * (filled and in their state's colour when they show a pane, outlined when empty, ringed when selected); the other
- * positions are greyed out. A Stream Deck plugin without `layout` draws only the Pane keys it lists.
+ * positions are greyed out. A keypad plugin without `layout` draws only the Pane keys it lists.
  */
 function Grid({ deck }) {
   const working = read(busy);
@@ -371,7 +373,7 @@ function PaneRow({ p, k, working }) {
 }
 
 /**
- * The pane list of a key (`k`), the focused pane first, or why there is none: a Stream Deck plugin of an older
+ * The pane list of a key (`k`), the focused pane first, or why there is none: a keypad plugin of an older
  * build sends no list at all. A press puts the pane on the key.
  */
 function Panes({ deck, k }) {
@@ -379,7 +381,7 @@ function Panes({ deck, k }) {
   if (!deck.panes)
     return (
       <Text size="xs" tone="warning">
-        The pane list needs a newer Stream Deck plugin: update it to choose any pane.
+        The pane list needs a newer keypad plugin: update it to choose any pane.
       </Text>
     );
   if (!deck.panes.length)
@@ -442,7 +444,7 @@ function Panes({ deck, k }) {
 /** The selected key's details, under the grid: what it shows, Unmap, the focused pane and the panes to choose. */
 function Details({ deck, k }) {
   const working = read(busy);
-  // A Stream Deck plugin that sends no pane list cannot say: let the press try.
+  // A keypad plugin that sends no pane list cannot say: let the press try.
   const noFocus = !!deck.panes && !deck.panes.some((p) => p.focused);
   return (
     <Box grow minHeight={0} gap="sm" align="stretch">
@@ -500,7 +502,7 @@ export default function Panel() {
     // One box, one padding: every block (heading, status, grid, details, search, list) shares the same edges. `md`
     // between blocks, `sm` inside one; the full height lets the pane list fill what is left of the sidebar.
     <Box padding="md" gap="md" align="stretch" height="100%">
-      <Heading>Agent Deck</Heading>
+      <Heading>Agent Keypad</Heading>
       <Box direction="row" gap="sm" align="center">
         <Box minWidth={0}>
           <Status v={v} />

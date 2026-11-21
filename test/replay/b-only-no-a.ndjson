@@ -4,4 +4,4 @@
 {"at":0,"do":"expect.key","key":1,"state":"completed","label":"Claude Code"}
 {"at":0,"do":"expect.key","key":14,"state":"idle","label":"Install the Orca plugin","line2":"!"}
 {"at":100,"do":"deck.pi.open","key":14}
-{"at":100,"do":"expect.pi","key":14,"messages":[{"type":"checks","checks":[{"id":"orca-plugin","result":"warn","caption":"Install the Orca plugin","fix":{"action":"open-url","label":"Install the Orca plugin","url":"orca://plugins/1am.agent-deck?catalog=https://github.com/1am/orca-agent-deck.git"}}]}]}
+{"at":100,"do":"expect.pi","key":14,"messages":[{"type":"checks","checks":[{"id":"orca-plugin","result":"warn","caption":"Install the Orca plugin","fix":{"action":"open-url","label":"Install the Orca plugin","url":"orca://plugins/lucasdangl.agent-keypad?catalog=https://github.com/lucasdangl/orca-agent-keypad.git"}}]}]}

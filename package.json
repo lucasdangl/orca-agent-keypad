@@ -1,6 +1,6 @@
 {
   "name": "orca-agent-deck",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "private": true,
   "license": "MIT",
   "type": "module",
@@ -30,7 +30,9 @@
     "sd:dev": "pnpm sd:build && streamdeck link packages/streamdeck-plugin/pl.1am.orca-agent-deck.sdPlugin && pnpm -C packages/streamdeck-plugin watch",
     "diagnostics": "node scripts/collect-diagnostics.mjs",
     "prepare": "husky",
-    "catalog": "node scripts/catalog.mjs"
+    "catalog": "node scripts/catalog.mjs",
+    "logi:build": "pnpm -C packages/logi-daemon build",
+    "logi-sim": "node --experimental-strip-types scripts/logi-sim.ts"
   },
   "dependencies": {
     "ws": "8.22.0",
@@ -44,7 +46,9 @@
     "@orca-agent-deck/adapter-cli": "workspace:*",
     "@orca-agent-deck/adapter-runtime": "workspace:*",
     "@orca-agent-deck/core": "workspace:*",
+    "@orca-agent-deck/deck-host": "workspace:*",
     "@orca-agent-deck/fake-orca": "workspace:*",
+    "@orca-agent-deck/logi-daemon": "workspace:*",
     "@orca-agent-deck/window-raiser": "workspace:*",
     "@rollup/plugin-commonjs": "^29.0.3",
     "@rollup/plugin-node-resolve": "^16.0.3",

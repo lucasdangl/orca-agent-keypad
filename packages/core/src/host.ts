@@ -1,7 +1,8 @@
 /** Which Stream Deck host app runs plugin B, and on which OS. Pure: the caller passes the process values. */
 
 export type DeckOs = 'mac' | 'windows' | 'linux' | 'other';
-export type DeckHost = 'elgato' | 'opendeck' | 'unknown';
+/** `logi`: the Logi Plugin Service (Options+), which runs our C# plugin; that plugin starts the Node daemon. */
+export type DeckHost = 'elgato' | 'opendeck' | 'logi' | 'unknown';
 
 export interface DeckHostInfo {
   /** From the Node process, never from the registration info (OpenDeck reports `windows` on every OS). */
@@ -10,7 +11,15 @@ export interface DeckHostInfo {
   /** Version string the host registered with (not comparable across hosts). */
   version: string;
   /** Which signal decided `host`, for the Setup doctor and the log. */
-  basis: 'env' | 'linux' | 'version-pixel-ratio' | 'platform-mismatch' | 'build-version' | 'none';
+  basis:
+    | 'env'
+    | 'linux'
+    | 'version-pixel-ratio'
+    | 'platform-mismatch'
+    | 'build-version'
+    /** The device app said who it is (the Logi plugin's `hello`). */
+    | 'device-app'
+    | 'none';
 }
 
 /** The registration info members used (`streamDeck.info`). */

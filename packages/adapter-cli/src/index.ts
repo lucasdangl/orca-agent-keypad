@@ -13,6 +13,7 @@ import type {
 import {
   classifyFinalMessage,
   envHostId,
+  isChatPaneKey,
   isLocalHost,
   LOCAL_HOST,
   mergeHostCensus,
@@ -35,6 +36,7 @@ import {
   activePaneKey,
   statusResponse,
   revealResponse,
+  sessionTabsResponse,
   switchResponse,
   terminalShowResponse,
   terminalListResponse,
@@ -49,6 +51,49 @@ export * from './spawn-plan.ts';
 
 /** Runs `orca <args>` and returns stdout. Injectable for tests. */
 export type Exec = (args: string[]) => Promise<string>;
+
+/** Orca's app ids for `orca computer`: the release build first, then by name. */
+const ORCA_APPS = ['com.stablyai.orca', 'Orca'];
+/**
+ * The chat input's accessible name is its placeholder (`native-chat.composer.placeholder`), in Orca's language: "Ask
+ * anything, @ to mention files, / for commands", "Frage stellen, @ für Dateiverweise, / für Befehle", ... Every
+ * translation names `@` and `/`; the query narrows the tree to lines with an `@`.
+ */
+const CHAT_INPUT_QUERY = '@';
+
+/**
+ * Elements whose children an `orca computer get-app-state` tree cut off at its size limit: each
+ * `... N more not shown (snapshot limit)` line stands for children of the nearest line above it with less indent.
+ */
+export function cutOffParents(tree: string): number[] {
+  const lines = tree.split('\n');
+  const parents: number[] = [];
+  lines.forEach((line, i) => {
+    if (!/more not shown \(snapshot limit\)/.test(line)) return;
+    const indent = /^\t*/.exec(line)?.[0].length ?? 0;
+    for (let j = i - 1; j >= 0; j--) {
+      const m = /^(\t*)(\d+) /.exec(lines[j] ?? '');
+      if (m && (m[1] ?? '').length < indent) {
+        const n = Number(m[2]);
+        if (!parents.includes(n)) parents.push(n);
+        return;
+      }
+    }
+  });
+  return parents;
+}
+
+/** Element index of the first chat input in an `orca computer get-app-state` tree, null when none is shown. */
+export function chatInputIndex(tree: string): number | null {
+  for (const line of tree.split('\n')) {
+    const [, index, rest = ''] = /^\s*(\d+) (.*)$/.exec(line) ?? [];
+    // The name ends where the value (the draft) starts.
+    const name = rest.split(', Value:')[0] ?? '';
+    if (index && name.includes('(settable)') && name.includes('@') && name.includes('/'))
+      return Number(index);
+  }
+  return null;
+}
 
 /** GUI apps (Stream Deck) start plugins with a minimal PATH that lacks the usual `orca` install dirs. */
 const EXTRA_PATH = process.platform === 'win32' ? [] : ['/usr/local/bin', '/opt/homebrew/bin'];
@@ -92,6 +137,25 @@ export function compareVersions(a: string, b: string): number {
     if (d !== 0) return Math.sign(d);
   }
   return 0;
+}
+
+/** Option labels of a pending structured question: the first question's, at most 4; null when there is none. */
+export function questionOptionsOf(
+  a: z.infer<typeof agentEntry>,
+  state: AgentRawState,
+): string[] | null {
+  if (!a.interactivePrompt || state === 'done') return null;
+  try {
+    const p = JSON.parse(a.interactivePrompt) as {
+      questions?: { options?: { label?: unknown }[] }[];
+    };
+    const labels = (p.questions?.[0]?.options ?? [])
+      .map((o) => (typeof o?.label === 'string' ? o.label.trim() : ''))
+      .slice(0, 4);
+    return labels.length ? labels : null;
+  } catch {
+    return null;
+  }
 }
 
 /** Does this agent entry ask the user something? Keeps the verdict, drops the text. */
@@ -262,6 +326,30 @@ export class CliAdapter implements OrcaAdapter {
       recordedPaneKey: t.recordedPaneKey ?? null,
       lastOutputAt: t.lastOutputAt ?? null,
     }));
+    // Orca's agent chats are no terminals: `worktree ps` is the only listing that has them.
+    const known = new Set(panes.map((p) => p.paneKey));
+    for (const wt of ps.result.worktrees) {
+      for (const a of wt.agents) {
+        if (!isChatPaneKey(a.paneKey) || a.parentPaneKey || known.has(a.paneKey)) continue;
+        known.add(a.paneKey);
+        const agent = a.agentType ?? null;
+        panes.push({
+          paneKey: a.paneKey,
+          hostId: environment ? envHostId(environment) : wt.hostId,
+          handle: '',
+          kind: 'chat',
+          worktreeId: wt.worktreeId,
+          title: a.displayName || a.conversationName || a.taskTitle || `${agent ?? 'agent'} chat`,
+          connected: true,
+          agentType: agent,
+          worktreePath: null,
+          environment,
+          repo: wt.repo ?? null,
+          branch: wt.branch?.replace('refs/heads/', '') ?? null,
+          tabTitle: null,
+        });
+      }
+    }
     const statuses: PaneStatusEvent[] = [];
     for (const wt of ps.result.worktrees) {
       for (const a of wt.agents) {
@@ -276,6 +364,7 @@ export class CliAdapter implements OrcaAdapter {
           agentType: a.agentType ?? null,
           stateStartedAt: a.stateStartedAt,
           awaiting: awaitingOf(a, state, a.mainAgent?.outcome ?? null),
+          questionOptions: questionOptionsOf(a, state),
         });
       }
     }
@@ -385,6 +474,13 @@ export class CliAdapter implements OrcaAdapter {
         this.focusNote += ' no-active-worktree';
         return null;
       }
+      // The layout tree has terminals only: with an agent chat in front it names the terminal tab
+      // shown last. The session tabs know (runtime socket only; without it, the layout answers).
+      const chat = await this.activeChat(active.worktreeId, ps);
+      if (chat !== undefined) {
+        if (chat === null) this.focusNote += ' chat-without-agent-entry';
+        return chat;
+      }
       const fromLayout = activePaneKey(layouts, active.worktreeId);
       if (fromLayout) return fromLayout;
       this.focusNote += ' active-worktree-has-no-layout';
@@ -403,15 +499,167 @@ export class CliAdapter implements OrcaAdapter {
     }
   }
 
+  /**
+   * The agent chat the worktree shows: its pane key, null when a chat is shown that `worktree ps`
+   * does not list (no agent entry yet), undefined when a non-chat tab is shown or the tabs cannot
+   * be read (no runtime socket, older Orca).
+   */
+  private async activeChat(
+    worktreeId: string,
+    ps: z.infer<typeof worktreePsResponse>,
+  ): Promise<string | null | undefined> {
+    const agents = ps.result.worktrees.find((w) => w.worktreeId === worktreeId)?.agents ?? [];
+    // No chat in this worktree: nothing to ask (and no extra call per focus read).
+    if (!agents.some((a) => isChatPaneKey(a.paneKey))) return undefined;
+    let tabs;
+    try {
+      tabs = await this.call(sessionTabsResponse, [
+        'session',
+        'tabs',
+        '--worktree',
+        `id:${worktreeId}`,
+      ]);
+    } catch {
+      return undefined;
+    }
+    const { activeTabType, activeTabId } = tabs.result;
+    if (activeTabType !== 'agent-session' || !activeTabId) return undefined;
+    const sessionId = activeTabId.replace(/^agent-session:/, '');
+    const agent = agents.find(
+      (a) =>
+        isChatPaneKey(a.paneKey) &&
+        !a.parentPaneKey &&
+        (a.orcaSessionId === sessionId ||
+          a.paneKey.startsWith(`structured-agent-session-${sessionId}:`)),
+    );
+    return agent?.paneKey ?? null;
+  }
+
+  /**
+   * Puts the keyboard focus into the input of the chat Orca shows, through Orca's computer use (the accessibility
+   * tree): `terminal.reveal` only switches the tab and leaves the focus where it was (a search field, the sidebar),
+   * so Orca's dictation (Cmd+E) would not find the chat input (docs/logi-findings.md §12). False when no chat input is
+   * on screen or computer use is unavailable.
+   */
+  async focusChatInput(): Promise<boolean> {
+    const notes: string[] = [];
+    // A chat just revealed may still be rendering: look twice.
+    for (let attempt = 0; attempt < 2; attempt++) {
+      if (attempt > 0) await new Promise((r) => setTimeout(r, 400));
+      for (const app of ORCA_APPS) {
+        let found: { index: number | null; note: string };
+        try {
+          found = await this.findChatInput(app);
+        } catch (e) {
+          // Not this app id (a dev build) or no computer use: try the next one.
+          notes.push(`${app}: ${(e as Error).message.replace(/\s+/g, ' ').slice(0, 200)}`);
+          continue;
+        }
+        if (found.index === null) {
+          notes.push(`${app}: ${found.note}`);
+          break;
+        }
+        try {
+          await this.exec([
+            'computer',
+            'click',
+            '--app',
+            app,
+            '--element-index',
+            String(found.index),
+            '--no-screenshot',
+            '--json',
+          ]);
+          return true;
+        } catch (e) {
+          notes.push(`click: ${(e as Error).message.replace(/\s+/g, ' ').slice(0, 200)}`);
+          break;
+        }
+      }
+    }
+    this.diag?.(`chat input not focused: ${notes.join(' | ')}`);
+    return false;
+  }
+
+  /**
+   * The chat input's element index. A snapshot reads at most ~1200 elements, and a long chat has more: the input,
+   * below the messages, is then cut off. The parts cut off are read one by one (`--element-index`).
+   */
+  private async findChatInput(app: string): Promise<{ index: number | null; note: string }> {
+    const read = async (extra: string[]) => {
+      const state = JSON.parse(
+        await this.exec([
+          'computer',
+          'get-app-state',
+          '--app',
+          app,
+          ...extra,
+          '--no-screenshot',
+          '--json',
+        ]),
+      ) as { result?: { snapshot?: { treeText?: string } } };
+      return state.result?.snapshot?.treeText ?? '';
+    };
+    const tree = await read(['--query', CHAT_INPUT_QUERY]);
+    const index = chatInputIndex(tree);
+    if (index !== null) return { index, note: '' };
+    const full = await read([]);
+    const cut = cutOffParents(full);
+    // The input comes after the messages: the last parts first.
+    for (const parent of cut.reverse().slice(0, 6)) {
+      const i = chatInputIndex(
+        await read(['--element-index', String(parent), '--query', CHAT_INPUT_QUERY]),
+      );
+      if (i !== null) return { index: i, note: '' };
+    }
+    const focused = /The focused UI element is (.*)/.exec(full)?.[1] ?? 'none';
+    const lines = full.split('\n').length;
+    return {
+      index: null,
+      note: `no chat input (${lines} lines, ${cut.length} cut off), focus ${focused.slice(0, 80)}`,
+    };
+  }
+
   /** `worktree set --read`: clears the unread dot in Orca. Local worktrees only. */
   async markWorktreeRead(worktreeId: string): Promise<void> {
     await this.exec(['worktree', 'set', '--worktree', `id:${worktreeId}`, '--read', '--json']);
+  }
+
+  /**
+   * An agent chat has no terminal handle: only `terminal.reveal` on the runtime socket opens it
+   * (docs/logi-findings.md §8). There is no CLI route, so without the socket the focus fails.
+   */
+  private async revealChat(
+    pane: PaneRef & { environment?: string | null; worktreeId?: string },
+    tabId: string,
+    leafId: string,
+  ): Promise<FocusResult> {
+    if (!pane.worktreeId || !leafId)
+      return { ok: false, error: 'chat pane without worktree or leaf' };
+    const host = pane.environment ? ['--execution-host', runtimeHostId(pane.environment)] : [];
+    try {
+      const r = await this.call(revealResponse, [
+        'terminal',
+        'reveal',
+        '--worktree',
+        pane.worktreeId,
+        '--tab',
+        tabId,
+        '--leaf',
+        leafId,
+        ...host,
+      ]);
+      return r.result.reveal.navigated ? { ok: true } : { ok: false, error: 'chat not navigated' };
+    } catch (e) {
+      return { ok: false, error: `chat needs the Orca runtime socket: ${(e as Error).message}` };
+    }
   }
 
   async focus(
     pane: PaneRef & { handle: string; environment?: string | null; worktreeId?: string },
   ): Promise<FocusResult> {
     const { tabId, leafId } = splitPaneKey(pane.paneKey);
+    if (isChatPaneKey(pane.paneKey)) return this.revealChat(pane, tabId, leafId);
     if ((pane.environment || this.revealLocal) && pane.worktreeId && tabId && leafId) {
       // A paired server has no window: the CLI asks it about the pane (a new remote connection
       // per call, 1.3-3.4 s) and then has this Orca reveal it. We know the pane already, so we

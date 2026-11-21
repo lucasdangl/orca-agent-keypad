@@ -207,4 +207,4 @@ sequenceDiagram
   Note over B: the host quits: B sees its parent pid change or vanish (checked every 2 s), closes the bridge, removes bridge.json only if it still names itself, exits
 ```
 
-Both Stream Deck apps swap freely: the SDK reports no closed host socket, so B polls its parent pid (`watchHost`, `packages/streamdeck-plugin/src/host-watch.ts`) and exits when the host is gone, instead of staying as an orphan on its bridge port. A newer B just overwrites `bridge.json`; the older one, once it exits, leaves that file alone (`BridgeServer.stop` checks pid and token).
+Both Stream Deck apps swap freely: the SDK reports no closed host socket, so B polls its parent pid (`watchHost`, `packages/deck-host/src/host-watch.ts`) and exits when the host is gone, instead of staying as an orphan on its bridge port. A newer B just overwrites `bridge.json`; the older one, once it exits, leaves that file alone (`BridgeServer.stop` checks pid and token).

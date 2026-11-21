@@ -1,357 +1,45 @@
 {
   "catalogVersion": 2,
-  "name": "Agent Deck for Orca",
-  "owner": "1am",
+  "name": "Agent Keypad for Orca",
+  "owner": "lucasdangl",
   "plugins": [
     {
-      "id": "1am.agent-deck",
+      "id": "lucasdangl.agent-keypad",
       "source": {
         "kind": "git",
-        "url": "https://github.com/1am/orca-agent-deck.git",
+        "url": "https://github.com/lucasdangl/orca-agent-keypad.git",
         "ref": "main"
       },
-      "description": "See at a glance which Orca agent needs you. Each pane gets a Stream Deck key that shows its state and focuses the pane when pressed.",
+      "description": "See at a glance which Orca agent needs you. Each agent chat or pane gets a key on the Logi MX Creative Keypad that shows its state and opens it when pressed.",
       "categories": [],
       "releases": [
         {
-          "version": "0.2.2",
-          "commit": "2e73f90993b5a3aa1a6bff0be77dd00bfc932466",
-          "contentHash": "a378e857ac39a34b20b5f3fd387ab8d140ceb2550da91279a01c89f219965705",
-          "execution": "trusted-worker",
-          "minimumOrca": "1.4.245",
-          "name": "Agent Deck for Orca",
-          "contributes": [
-            {
-              "kind": "commands",
-              "name": "Agent Deck: Map pane to key"
-            },
-            {
-              "kind": "commands",
-              "name": "Agent Deck: Unmap pane"
-            },
-            {
-              "kind": "commands",
-              "name": "Agent Deck: Show status"
-            },
-            {
-              "kind": "events",
-              "name": "agent.status.changed"
-            },
-            {
-              "kind": "events",
-              "name": "workspace.created"
-            },
-            {
-              "kind": "events",
-              "name": "workspace.removed"
-            }
-          ],
-          "capabilities": ["agent:read", "workspace:read", "storage:own"],
-          "images": {
-            "icon": {
-              "path": "orca-plugin/images/icon.png",
-              "alt": "Agent Deck for Orca",
-              "sha256": "e9db045d1cf330937b3774c86cc6af156744f7580dfe05305e8f261f77c4e416",
-              "width": 512,
-              "height": 512
-            },
-            "cover": {
-              "path": "orca-plugin/images/cover.png",
-              "alt": "A Stream Deck showing Orca agent panes as colored keys: working, done, idle and empty",
-              "sha256": "b07fbe48c19bafb54ee1a71075d662e54158f015e5c17501610c96a3f630e0cd",
-              "width": 1600,
-              "height": 1000
-            },
-            "screenshots": [
-              {
-                "path": "orca-plugin/images/deck.png",
-                "alt": "A 5x3 Stream Deck grid of Orca pane keys with status icons",
-                "sha256": "1e88ece0ccdbc3afe5f9fb72db863ec73165c5b178fdcd86ebf28e801c4ed6e5",
-                "width": 1920,
-                "height": 1200
-              }
-            ]
-          }
-        },
-        {
-          "version": "0.2.1",
-          "commit": "d94df3d2b3202df68b37732cc89a0ac497c13558",
-          "contentHash": "00c141ba6ffaf788fdc3d9c9e9526271cb6b04e875865927d0599636ae19f4db",
-          "execution": "trusted-worker",
-          "minimumOrca": "1.4.245",
-          "name": "Agent Deck for Orca",
-          "contributes": [
-            {
-              "kind": "commands",
-              "name": "Agent Deck: Map pane to key"
-            },
-            {
-              "kind": "commands",
-              "name": "Agent Deck: Unmap pane"
-            },
-            {
-              "kind": "commands",
-              "name": "Agent Deck: Show status"
-            },
-            {
-              "kind": "events",
-              "name": "agent.status.changed"
-            },
-            {
-              "kind": "events",
-              "name": "workspace.created"
-            },
-            {
-              "kind": "events",
-              "name": "workspace.removed"
-            }
-          ],
-          "capabilities": ["agent:read", "workspace:read", "storage:own"],
-          "images": {
-            "icon": {
-              "path": "orca-plugin/images/icon.png",
-              "alt": "Agent Deck for Orca",
-              "sha256": "e9db045d1cf330937b3774c86cc6af156744f7580dfe05305e8f261f77c4e416",
-              "width": 512,
-              "height": 512
-            },
-            "cover": {
-              "path": "orca-plugin/images/cover.png",
-              "alt": "A Stream Deck showing Orca agent panes as colored keys: working, done, idle and empty",
-              "sha256": "b07fbe48c19bafb54ee1a71075d662e54158f015e5c17501610c96a3f630e0cd",
-              "width": 1600,
-              "height": 1000
-            },
-            "screenshots": [
-              {
-                "path": "orca-plugin/images/deck.png",
-                "alt": "A 5x3 Stream Deck grid of Orca pane keys with status icons",
-                "sha256": "1e88ece0ccdbc3afe5f9fb72db863ec73165c5b178fdcd86ebf28e801c4ed6e5",
-                "width": 1920,
-                "height": 1200
-              }
-            ]
-          }
-        },
-        {
-          "version": "0.2.0",
-          "commit": "b334315b6653eb48a6c42ca44901e9220f6ab34a",
-          "contentHash": "901174d54f3835211b6ab651eb34941a28feae3c2c1d12e2f01b98ef53c8432c",
-          "execution": "trusted-worker",
-          "minimumOrca": "1.4.245",
-          "name": "Orca Agent Deck",
-          "contributes": [
-            {
-              "kind": "commands",
-              "name": "Orca Agent Deck: Map pane to key"
-            },
-            {
-              "kind": "commands",
-              "name": "Orca Agent Deck: Unmap pane"
-            },
-            {
-              "kind": "commands",
-              "name": "Orca Agent Deck: Show status"
-            },
-            {
-              "kind": "events",
-              "name": "agent.status.changed"
-            },
-            {
-              "kind": "events",
-              "name": "workspace.created"
-            },
-            {
-              "kind": "events",
-              "name": "workspace.removed"
-            }
-          ],
-          "capabilities": ["agent:read", "workspace:read", "storage:own"],
-          "images": {
-            "icon": {
-              "path": "orca-plugin/images/icon.png",
-              "alt": "Orca Agent Deck",
-              "sha256": "e9db045d1cf330937b3774c86cc6af156744f7580dfe05305e8f261f77c4e416",
-              "width": 512,
-              "height": 512
-            },
-            "cover": {
-              "path": "orca-plugin/images/cover.png",
-              "alt": "A Stream Deck showing Orca agent panes as colored keys: working, done, idle and empty",
-              "sha256": "b07fbe48c19bafb54ee1a71075d662e54158f015e5c17501610c96a3f630e0cd",
-              "width": 1600,
-              "height": 1000
-            },
-            "screenshots": [
-              {
-                "path": "orca-plugin/images/deck.png",
-                "alt": "A 5x3 Stream Deck grid of Orca pane keys with status icons",
-                "sha256": "1e88ece0ccdbc3afe5f9fb72db863ec73165c5b178fdcd86ebf28e801c4ed6e5",
-                "width": 1920,
-                "height": 1200
-              }
-            ]
-          }
-        },
-        {
-          "version": "0.1.2",
-          "commit": "10518933369020e50e4387b9c6fc8f8c744a5774",
-          "contentHash": "f10d086a2d37fe0f67df29ae47b7ed3469f02c03c53c495c8f330295c5e1d15b",
-          "execution": "trusted-worker",
-          "minimumOrca": "1.4.245",
-          "name": "Orca Agent Deck",
-          "contributes": [
-            {
-              "kind": "commands",
-              "name": "Orca Agent Deck: Map pane to key"
-            },
-            {
-              "kind": "commands",
-              "name": "Orca Agent Deck: Unmap pane"
-            },
-            {
-              "kind": "commands",
-              "name": "Orca Agent Deck: Show status"
-            },
-            {
-              "kind": "events",
-              "name": "agent.status.changed"
-            },
-            {
-              "kind": "events",
-              "name": "workspace.created"
-            },
-            {
-              "kind": "events",
-              "name": "workspace.removed"
-            }
-          ],
-          "capabilities": ["agent:read", "workspace:read", "storage:own"],
-          "images": {
-            "icon": {
-              "path": "orca-plugin/images/icon.png",
-              "alt": "Orca Agent Deck",
-              "sha256": "e9db045d1cf330937b3774c86cc6af156744f7580dfe05305e8f261f77c4e416",
-              "width": 512,
-              "height": 512
-            },
-            "cover": {
-              "path": "orca-plugin/images/cover.png",
-              "alt": "A Stream Deck showing Orca agent panes as colored keys: working, done, idle and empty",
-              "sha256": "b07fbe48c19bafb54ee1a71075d662e54158f015e5c17501610c96a3f630e0cd",
-              "width": 1600,
-              "height": 1000
-            },
-            "screenshots": [
-              {
-                "path": "orca-plugin/images/deck.png",
-                "alt": "A 5x3 Stream Deck grid of Orca pane keys with status icons",
-                "sha256": "1e88ece0ccdbc3afe5f9fb72db863ec73165c5b178fdcd86ebf28e801c4ed6e5",
-                "width": 1920,
-                "height": 1200
-              }
-            ]
-          }
-        },
-        {
-          "version": "0.1.1",
-          "commit": "71a4c1e562efaac9d2cd4b082ad3bc23b296cba8",
-          "contentHash": "bb35c6a5c6042a3bd51f2724579b6d9dd7dff008e6daa7ebe8390b567e8e32d0",
-          "execution": "trusted-worker",
-          "minimumOrca": "1.4.245",
-          "name": "Orca Agent Deck",
-          "contributes": [
-            {
-              "kind": "commands",
-              "name": "Orca Agent Deck: Map pane to key"
-            },
-            {
-              "kind": "commands",
-              "name": "Orca Agent Deck: Unmap pane"
-            },
-            {
-              "kind": "commands",
-              "name": "Orca Agent Deck: Show status"
-            },
-            {
-              "kind": "events",
-              "name": "agent.status.changed"
-            },
-            {
-              "kind": "events",
-              "name": "workspace.created"
-            },
-            {
-              "kind": "events",
-              "name": "workspace.removed"
-            }
-          ],
-          "capabilities": ["agent:read", "workspace:read", "storage:own"],
-          "images": {
-            "icon": {
-              "path": "orca-plugin/images/icon.png",
-              "alt": "Orca Agent Deck",
-              "sha256": "e9db045d1cf330937b3774c86cc6af156744f7580dfe05305e8f261f77c4e416",
-              "width": 512,
-              "height": 512
-            },
-            "cover": {
-              "path": "orca-plugin/images/cover.png",
-              "alt": "A Stream Deck showing Orca agent panes as colored keys: working, done, idle and empty",
-              "sha256": "b07fbe48c19bafb54ee1a71075d662e54158f015e5c17501610c96a3f630e0cd",
-              "width": 1600,
-              "height": 1000
-            },
-            "screenshots": [
-              {
-                "path": "orca-plugin/images/deck.png",
-                "alt": "A 5x3 Stream Deck grid of Orca pane keys with status icons",
-                "sha256": "1e88ece0ccdbc3afe5f9fb72db863ec73165c5b178fdcd86ebf28e801c4ed6e5",
-                "width": 1920,
-                "height": 1200
-              }
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "id": "local.agent-deck",
-      "source": {
-        "kind": "git",
-        "url": "https://github.com/1am/orca-agent-deck.git",
-        "ref": "main"
-      },
-      "description": "See at a glance which Orca agent needs you. Each pane gets a Stream Deck key that shows its state and focuses the pane when pressed.",
-      "categories": [],
-      "releases": [
-        {
-          "version": "0.3.1",
-          "commit": "69c506ecf7e196dd52c017419b5eec013a75ce55",
-          "contentHash": "a78b971e9601ea18136c665c89fe3016268cf670aef2343f1aef9422d1dee88d",
+          "version": "0.4.0",
+          "commit": "448ea6788f7e6e6f8ca673b1761960c47020175b",
+          "contentHash": "16a992445f5b8ec905254703505120fc993c3ff438176528cfb13e037bb262ce",
           "execution": "trusted-worker",
           "minimumOrca": "1.4.248",
-          "name": "Agent Deck for Orca",
+          "name": "Agent Keypad for Orca",
           "contributes": [
             {
               "kind": "panels",
-              "name": "Agent Deck"
+              "name": "Agent Keypad"
             },
             {
               "kind": "commands",
-              "name": "Agent Deck: Open panel"
+              "name": "Agent Keypad: Open panel"
             },
             {
               "kind": "commands",
-              "name": "Agent Deck: Show status"
+              "name": "Agent Keypad: Show status"
             },
             {
               "kind": "commands",
-              "name": "Agent Deck: Record events"
+              "name": "Agent Keypad: Record events"
             },
             {
               "kind": "commands",
-              "name": "Agent Deck: Uninstall"
+              "name": "Agent Keypad: Uninstall"
             },
             {
               "kind": "events",
@@ -364,110 +52,25 @@
             },
             {
               "kind": "statusBarItems",
-              "name": "Agent Deck"
+              "name": "Agent Keypad"
             }
           ],
           "capabilities": ["agent:read", "workspace:write"],
           "images": {
             "icon": {
               "path": "orca-plugin/images/icon.png",
-              "alt": "Agent Deck for Orca",
-              "sha256": "e9db045d1cf330937b3774c86cc6af156744f7580dfe05305e8f261f77c4e416",
+              "alt": "Agent Keypad for Orca",
+              "sha256": "e6cfb1a6fd0b7a2258b5ab1146e22c63590fb1b0692d6b0e32fe197309742e60",
               "width": 512,
               "height": 512
             },
             "cover": {
               "path": "orca-plugin/images/cover.png",
-              "alt": "A Stream Deck showing Orca agent panes as colored keys: working, done, idle and empty",
-              "sha256": "b07fbe48c19bafb54ee1a71075d662e54158f015e5c17501610c96a3f630e0cd",
+              "alt": "An MX Creative Keypad drawn with Orca agent chats on its keys: working (blue), needs you (yellow), done (green), plus the Status and Attention keys",
+              "sha256": "c28de41afe7b849fbb7ade61c5bcf2fcf7f76b81295bcf11e13422936e4a8598",
               "width": 1600,
               "height": 1000
-            },
-            "screenshots": [
-              {
-                "path": "orca-plugin/images/deck.png",
-                "alt": "A 5x3 Stream Deck grid of Orca pane keys with status icons",
-                "sha256": "1e88ece0ccdbc3afe5f9fb72db863ec73165c5b178fdcd86ebf28e801c4ed6e5",
-                "width": 1920,
-                "height": 1200
-              },
-              {
-                "path": "orca-plugin/images/desk.jpg",
-                "alt": "A Stream Deck in front of a laptop, its keys lit with agent status colors and one key counting 1 agent that needs you",
-                "sha256": "fee60629c40d439f2fb315ac3201c50a5b3ae3f19f4c8de4eabb9ad1dffb7494",
-                "width": 1920,
-                "height": 1656
-              }
-            ]
-          }
-        },
-        {
-          "version": "0.3.0",
-          "commit": "6f5d2d9b41c92865f11da52e1ba8f048b97bf0bb",
-          "contentHash": "59e646f2304b931f2a22330b391cfc006479ae14e97f0a7347e5aff04398dbe8",
-          "execution": "trusted-worker",
-          "minimumOrca": "1.4.248",
-          "name": "Agent Deck for Orca",
-          "contributes": [
-            {
-              "kind": "panels",
-              "name": "Agent Deck"
-            },
-            {
-              "kind": "commands",
-              "name": "Agent Deck: Open panel"
-            },
-            {
-              "kind": "commands",
-              "name": "Agent Deck: Show status"
-            },
-            {
-              "kind": "commands",
-              "name": "Agent Deck: Record events"
-            },
-            {
-              "kind": "commands",
-              "name": "Agent Deck: Uninstall"
-            },
-            {
-              "kind": "events",
-              "name": "agent.status.changed"
-            },
-            {
-              "kind": "keybindings",
-              "name": "Mod+Alt+K",
-              "detail": "deck.map"
-            },
-            {
-              "kind": "statusBarItems",
-              "name": "Agent Deck"
             }
-          ],
-          "capabilities": ["agent:read", "workspace:write"],
-          "images": {
-            "icon": {
-              "path": "orca-plugin/images/icon.png",
-              "alt": "Agent Deck for Orca",
-              "sha256": "e9db045d1cf330937b3774c86cc6af156744f7580dfe05305e8f261f77c4e416",
-              "width": 512,
-              "height": 512
-            },
-            "cover": {
-              "path": "orca-plugin/images/cover.png",
-              "alt": "A Stream Deck showing Orca agent panes as colored keys: working, done, idle and empty",
-              "sha256": "b07fbe48c19bafb54ee1a71075d662e54158f015e5c17501610c96a3f630e0cd",
-              "width": 1600,
-              "height": 1000
-            },
-            "screenshots": [
-              {
-                "path": "orca-plugin/images/deck.png",
-                "alt": "A 5x3 Stream Deck grid of Orca pane keys with status icons",
-                "sha256": "1e88ece0ccdbc3afe5f9fb72db863ec73165c5b178fdcd86ebf28e801c4ed6e5",
-                "width": 1920,
-                "height": 1200
-              }
-            ]
           }
         }
       ]

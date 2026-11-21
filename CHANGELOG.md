@@ -2,6 +2,45 @@
 
 All notable changes to this project are documented here. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning: [SemVer](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- **Working key** (`Orca Working`): how many agents work right now, on a key or not; a press jumps to the one working longest, again to the next.
+- **Answer pad:** while the chat in front in Orca asks a question or wants a permission, the Pane keys turn into Esc / Other 🎤 / ↑ / 1 / 2 / ↓ / 3 / 4 / Send and send key presses to Orca; the digit keys show the option text. Send submits with Enter in the free-text field (↑ gets there from the options; Enter on an option only toggles it in a multi-select); Other jumps into the free-text field and starts Orca's dictation (Cmd+E), Send then stops it and submits. New device protocol message `sendKey`.
+- **Control keys 7 / 8 / 9 (keypad):** while free, key 7 sorts the auto keys (chats in Orca's order, gaps closed), key 8 focuses the input of the chat in front (through Orca computer use) and starts and stops Orca's dictation in it (Cmd+E), pausing Spotify or Apple Music meanwhile (AppleScript; macOS asks once) and playing exactly what it paused again after, key 9 sends (Enter, stopping dictation first).
+- **Matrix rain on empty keys (keypad):** a rain of code glyphs falls over the whole 3 x 3 deck; every Pane key without a chat shows its tile of it. No white flashes: the Logi service draws an image of one single colour as white, so a tile without a glyph keeps a tiny near-black mark.
+- **Hold resets a key (keypad):** holding a Pane key sets it back to auto-fill (it shows "Auto", then the next free chat), also a key mapped or emptied by hand; a tap on an empty key opens the Orca panel at it to map a chat (else Cmd+Option+K or the status bar). The Stream Deck keeps hold = panel.
+- **Auto-fill is on, for chats only (keypad):** Pane keys nobody mapped take free agent chats in a fixed order and keep them while they exist; terminals go on a key only when mapped by hand, and a key you clear in the panel stays empty.
+- **Done key** (`Orca Done`, teal): how many agents finished and are unread, on a key or not; a press opens the one that finished first and reads it. Opening the chat in Orca reads it too. Completions from before the plugin started do not count.
+- **The Attention key blinks** while an agent needs you (twice a second, the count stays readable in the dark phase).
+
+### Changed
+
+- Attention and Working show only the number, large and bold on a gradient in the state colour, under a glyph (bell / ring), without a caption. Status keeps its caption.
+- The keypad no longer writes the action name ("Orca Attention") under the keys: the plugin ships a default icon template that hides it.
+- Plugin A is named Agent Keypad in the Setup checks too, and their install link points to this fork.
+
+## [0.4.0] - 2026-11-20
+
+First release of **Agent Keypad for Orca**, this fork for the Logi MX Creative Keypad.
+
+### Added
+
+- **Logi MX Creative Keypad.** A Logi Actions plugin (`logi-plugin/`, C#) with Pane, Status and Attention keys runs a Node daemon (`packages/logi-daemon`) over a line-based JSON protocol (`docs/device-protocol.md`). `make package-logi` builds and verifies `OrcaKeypad-<version>.lplug4`.
+- **Device-neutral deck host** (`packages/deck-host`) behind a `DevicePort`, shared by the Stream Deck and the keypad.
+- **Orca agent chats** as panes: listed from `worktree ps`, opened through `terminal.reveal`, and found in front through `session.tabs.list` for hold-to-map.
+- Install guide `docs/install-logi.md`.
+
+### Changed
+
+- **Plugin A is Agent Keypad for Orca** (`agent-keypad`): texts for the keypad and Logi Options+, a new icon and cover. Upstream's `agent-deck` keys still work.
+- One version for all parts, now including the Logi plugin (`release.ts version`).
+
+### Fixed
+
+- **Pushed statuses are ordered by delivery time.** Orca reports a turn's start again when an agent goes from waiting back to working; the bridge feed dropped that push as stale, and the key stayed on "needs you" for the rest of the turn.
+
 ## [0.3.1] - 2026-11-16
 
 ### Changed

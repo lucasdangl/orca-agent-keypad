@@ -22,7 +22,7 @@ export type CheckId =
  * Orca's plugin-install-link); the same link as docs/install.md.
  */
 export const ORCA_PLUGIN_INSTALL_URL =
-  'orca://plugins/1am.agent-deck?catalog=https://github.com/1am/orca-agent-deck.git';
+  'orca://plugins/lucasdangl.agent-keypad?catalog=https://github.com/lucasdangl/orca-agent-keypad.git';
 
 /** The Node major the plugin needs (the Elgato app's bundled Node, and what OpenDeck must find on the machine). */
 export const MIN_NODE_MAJOR = 20;
@@ -109,6 +109,12 @@ export function tmuxMissingVars(output: string): string[] {
 }
 
 /** Setup checks, in the order they are shown. */
+const HOST_NAMES: Record<Exclude<DeckHostInfo['host'], 'unknown'>, string> = {
+  elgato: 'Elgato Stream Deck',
+  opendeck: 'OpenDeck',
+  logi: 'Logi Plugin Service',
+};
+
 export function runChecks(f: DoctorFacts): Check[] {
   const checks: Check[] = [];
 
@@ -229,8 +235,8 @@ export function runChecks(f: DoctorFacts): Check[] {
       result: 'warn',
       reason:
         'The Orca plugin and the Stream Deck plugin do not speak the same bridge version, so the Orca plugin cannot connect; the deck works with slower, polled status',
-      caption: 'Update Agent Deck for Orca',
-      hint: 'Update Agent Deck for Orca: both plugins must come from the same release (the older one needs the update)',
+      caption: 'Update Agent Keypad for Orca',
+      hint: 'Update Agent Keypad for Orca: both plugins must come from the same release (the older one needs the update)',
     });
   } else if (f.orcaPlugin === 'missing') {
     checks.push({
@@ -238,9 +244,9 @@ export function runChecks(f: DoctorFacts): Check[] {
       label: 'Orca plugin',
       result: 'warn',
       reason:
-        'The Agent Deck for Orca plugin is not installed (or is disabled) in Orca; the deck works with slower, polled status',
+        'The Agent Keypad for Orca plugin is not installed (or is disabled) in Orca; the deck works with slower, polled status',
       caption: 'Install the Orca plugin',
-      hint: 'Install it in Orca with the link, accept its access consent, then run "Agent Deck: Show status"',
+      hint: 'Install it in Orca with the link, accept its access consent, then run "Agent Keypad: Show status"',
       fix: { action: 'open-url', label: 'Install the Orca plugin', url: ORCA_PLUGIN_INSTALL_URL },
     });
   } else if (f.orcaPlugin === 'connected' || f.orcaPlugin === 'asleep') {
@@ -302,7 +308,8 @@ export function runChecks(f: DoctorFacts): Check[] {
     const seen =
       f.host.host === 'unknown'
         ? `Host not recognised (app ${f.host.version || '?'}, ${f.host.os}); set ORCA_DECK_HOST to elgato or opendeck`
-        : `${f.host.host === 'elgato' ? 'Elgato Stream Deck' : 'OpenDeck'} ${f.host.version}, ${f.host.os} (by ${f.host.basis})`;
+        : `${HOST_NAMES[f.host.host]} ${f.host.version}, ${f.host.os} (by ${f.host.basis})`;
+    const label = f.host.host === 'logi' ? 'Logi Plugin Service' : 'Stream Deck app';
     const node = f.nodeVersion ? `, Node ${f.nodeVersion.replace(/^v/, '')}` : '';
     // OpenDeck runs plugins on the Node installed on the machine; the Elgato app brings Node 20.
     const old =
@@ -311,18 +318,20 @@ export function runChecks(f: DoctorFacts): Check[] {
       old
         ? {
             id: 'deck-host',
-            label: 'Stream Deck app',
+            label,
             result: 'warn',
             reason: `${seen}${node}: older than Node ${MIN_NODE_MAJOR}`,
             caption: 'Node too old',
             hint:
               f.host.host === 'elgato'
                 ? `Update the Elgato Stream Deck app (it brings Node ${MIN_NODE_MAJOR})`
-                : `OpenDeck uses your system Node: install Node ${MIN_NODE_MAJOR}+`,
+                : f.host.host === 'logi'
+                  ? `The Orca Keypad plugin runs your system Node: install Node ${MIN_NODE_MAJOR}+ or set its path in the plugin settings`
+                  : `OpenDeck uses your system Node: install Node ${MIN_NODE_MAJOR}+`,
           }
         : {
             id: 'deck-host',
-            label: 'Stream Deck app',
+            label,
             result: 'ok',
             reason: `${seen}${node}`,
             caption: '',

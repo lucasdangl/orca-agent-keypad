@@ -163,7 +163,20 @@ it('status and attention info keys', async () => {
   ).toBe('slow updates 1.4.0');
   expect(attentionInfo(3, 'error')).toMatchObject({ tone: 'error', value: '3', caption: 'errors' });
   expect(attentionInfo(3, 'needs_input', 2).caption).toBe('need you +2');
-  expect(renderInfoKey(attentionInfo(0, null))).toContain('all calm');
+  expect(renderInfoKey(attentionInfo(0, null))).toContain('data-label="all calm"');
+});
+
+it('draws Attention and Working as a bare number, Status with its caption', async () => {
+  const { statusInfo, attentionInfo, workingInfo, doneInfo, renderInfoKey } =
+    await import('./render.ts');
+  const texts = (svg: string) => [...svg.matchAll(/<text[^>]*>([^<]*)<\/text>/g)].map((t) => t[1]);
+  expect(texts(renderInfoKey(attentionInfo(2, 'needs_input', 1)))).toEqual(['2']);
+  expect(texts(renderInfoKey(workingInfo(3)))).toEqual(['3']);
+  expect(texts(renderInfoKey(workingInfo(0)))).toEqual(['0']);
+  expect(texts(renderInfoKey(doneInfo(4)))).toEqual(['4']);
+  expect(doneInfo(0)).toMatchObject({ tone: 'unmapped', glyph: 'done' });
+  const status = statusInfo({ mode: 'live', version: '1.4.0', unsupported: false, hostsDown: 0 });
+  expect(texts(renderInfoKey(status))).toEqual(['OK', 'live 1.4.0']);
 });
 
 it('draws the focused pane light, with a state-coloured frame and a bold label', () => {

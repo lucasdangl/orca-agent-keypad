@@ -1,7 +1,7 @@
 import { createServer, type Server, type Socket } from 'node:net';
 import { writeFile } from 'node:fs/promises';
-import { hostList, terminalList, worktreePs } from './render.ts';
-import { focus, type SimState } from './sim.ts';
+import { hostList, sessionTabs, terminalList, worktreePs } from './render.ts';
+import { focus, reveal, type SimState } from './sim.ts';
 
 /**
  * Fake Orca runtime socket: NDJSON, one request per connection, token in every
@@ -133,6 +133,14 @@ export class FakeRuntime {
         }
         return { focus: { navigated: true, handle } };
       }
+      case 'terminal.reveal': {
+        const { tabId, leafId } = params;
+        if (typeof tabId !== 'string' || typeof leafId !== 'string')
+          throw Object.assign(new Error('Missing tab or leaf'), { code: 'invalid_argument' });
+        return { reveal: { navigated: reveal(s, tabId, leafId) } };
+      }
+      case 'session.tabs.list':
+        return sessionTabs(s, String(params['worktree']));
       case 'worktree.set':
         if (typeof params['worktree'] !== 'string') {
           throw Object.assign(new Error('Missing worktree selector'), { code: 'invalid_argument' });

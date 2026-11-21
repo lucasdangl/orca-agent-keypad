@@ -140,7 +140,7 @@ describe('plugin A uninstall', () => {
     );
     expect(a.uninstallText('/Users/ann/.orca-deck').length).toBeLessThanOrEqual(200);
     expect(a.uninstallText('/Users/ann/.orca-deck')).toMatch(
-      /recreates your mappings.*Elgato app.*OpenDeck.*Orca Settings/,
+      /keypad plugin in Logi Options\+.*recreates your mappings.*Orca Settings/,
     );
     // A long Windows path still leaves the warning in the toast.
     const long = a.uninstallText(`C:\\Users\\${'a'.repeat(40)}\\AppData\\Roaming\\orca-deck`);

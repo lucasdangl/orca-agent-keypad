@@ -107,6 +107,10 @@ export function makeRuntimeExec(opts: RuntimeExecOptions): Exec {
         }),
       );
     }
+    if (a === 'session' && b === 'tabs') {
+      // Not a CLI command: the adapter's read of the tab a worktree shows (agent chats included).
+      return envelope(await c.call('session.tabs.list', { worktree: flag(w, '--worktree') }));
+    }
     if (a === 'terminal' && b === 'show') {
       const { handle } = await c.call<{ handle: string }>('terminal.resolveActive');
       return envelope(await c.call('terminal.show', { terminal: handle }));
@@ -203,6 +207,8 @@ export function makeRuntimeExec(opts: RuntimeExecOptions): Exec {
     // The CLI has no `terminal reveal`; the adapter then focuses through `terminal switch`.
     if (args[0] === 'terminal' && args[1] === 'reveal')
       throw new Error('reveal needs the runtime socket');
+    if (args[0] === 'session' && args[1] === 'tabs')
+      throw new Error('session tabs need the runtime socket');
     return opts.fallback(args);
   };
 }

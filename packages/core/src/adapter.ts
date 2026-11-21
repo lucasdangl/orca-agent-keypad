@@ -31,6 +31,8 @@ export interface PaneInfo extends PaneRef {
   recordedPaneKey?: string | null;
   /** ms epoch of the pane's last output, when Orca reports it. */
   lastOutputAt?: number | null;
+  /** `chat`: an Orca agent chat (a structured agent session), not a terminal; it has no handle. */
+  kind?: 'terminal' | 'chat';
 }
 
 export interface PaneStatusEvent {
@@ -48,6 +50,11 @@ export interface PaneStatusEvent {
    * text itself never leaves the adapter.
    */
   awaiting?: AwaitingKind | null;
+  /**
+   * Labels of the options of a pending structured question (its first question, at most 4), for the answer pad on the
+   * keys. Shown on the device only: never logged, never sent anywhere else.
+   */
+  questionOptions?: string[] | null;
 }
 
 export interface HostInfo {
@@ -118,4 +125,6 @@ export interface OrcaAdapter {
   readonly focusHostId?: string | null;
   /** Clears Orca's unread dot for a worktree (`isUnread`), so reading in the deck clears it in Orca too. */
   markWorktreeRead?(worktreeId: string): Promise<void>;
+  /** Puts the keyboard focus into the input of the chat Orca shows; false when there is none. */
+  focusChatInput?(): Promise<boolean>;
 }

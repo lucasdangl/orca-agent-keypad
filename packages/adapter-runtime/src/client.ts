@@ -176,8 +176,16 @@ export class RuntimeClient {
   }
 }
 
-/** Orca plugin keys of plugin A, in the order they are tried: a catalog or git install, then a local folder. */
-export const PLUGIN_A_KEYS: readonly string[] = ['1am.agent-deck', 'local.agent-deck'];
+/**
+ * Orca plugin keys of plugin A, in the order they are tried: a catalog or git install, then a local folder; Agent
+ * Keypad (this fork) first, upstream's Agent Deck after it. Same list as adapter-bridge's `PLUGIN_A_KEYS`.
+ */
+export const PLUGIN_A_KEYS: readonly string[] = [
+  'lucasdangl.agent-keypad',
+  'local.agent-keypad',
+  '1am.agent-deck',
+  'local.agent-deck',
+];
 
 /**
  * Shows panel `panelId` of plugin A in Orca's sidebar (`plugins.open`, what `orca plugin open` calls). The install

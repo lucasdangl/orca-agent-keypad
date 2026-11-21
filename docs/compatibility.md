@@ -100,7 +100,7 @@ Read from nekename/OpenDeck tag `v2.14.2` (commit `3ddecc1`, latest stable on 20
 
 Checked 2026-11-08. The Marketplace DRM needs manifest `SDKVersion` 3, `Software.MinimumVersion` 6.9 or newer and `@elgato/streamdeck` 2 or newer. Since 2026-01-19 Maker Console rejects new plugins without it: the 0.3.0 upload (`SDKVersion` 2) failed on "SDK Compatibility: Version 2 or later" and "DRM protection enabled: No". We ship `SDKVersion` 3 with `MinimumVersion` 7.1 and `@elgato/streamdeck` 3.0.4. DRM is applied by Maker Console after upload, not by `streamdeck pack`, so the GitHub release build is not encrypted.
 
-- The plugin does not write into its `.sdPlugin` folder: the mapping file is `~/.orca-deck/mappings.json` (`src/mapping-file.ts`), and the plugin does not read its own manifest at runtime.
+- The plugin does not write into its `.sdPlugin` folder: the mapping file is `~/.orca-deck/mappings.json` (`packages/deck-host/src/mapping-file.ts`), and the plugin does not read its own manifest at runtime.
 - OpenDeck's manifest struct (`src-tauri/src/plugins/manifest.rs`) has no `SDKVersion` field and does not reject unknown fields, so the value should not matter to it.
 
 Decision (2026-11-16): switch to `SDKVersion` 3, because the Marketplace requires it. Before the first Marketplace release, run the dual-host smoke checklist on the packed plugin in the Elgato app and in OpenDeck. Then upload to Maker Console with "Publish after review" off, download the DRM build from the Versions tab, and smoke-test that one too.

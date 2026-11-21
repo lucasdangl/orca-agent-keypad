@@ -1,6 +1,6 @@
 import type { OrcaAdapter, PaneInfo, PaneStatusEvent, Snapshot } from './adapter.ts';
 import { isLocalHost, LOCAL_HOST, parseHostId, readableHostId } from './host-id.ts';
-import { splitPaneKey } from './pane-key.ts';
+import { isChatPaneKey, splitPaneKey } from './pane-key.ts';
 import { MappingStore, type PaneBinding, type SlotPosition } from './mapping.ts';
 import { PaneRegistry } from './registry.ts';
 import { ShellActivity } from './shell-activity.ts';
@@ -23,7 +23,8 @@ export interface SlotView {
   focused?: boolean;
 }
 
-const short = (id: string) => id.slice(0, 6);
+/** Log form of a slot id: Elgato contexts are long hex strings (6 characters tell them apart), Logi's are short. */
+const short = (id: string) => (id.length > 12 ? id.slice(0, 6) : id);
 
 /**
  * What a failed read says when Orca did answer but not in a shape the adapter knows (a zod issue list or
@@ -43,6 +44,13 @@ const FOCUS_FROM_SNAPSHOT_MS = 300;
 
 export type HealthMode = 'live' | 'degraded' | 'down';
 
+/** See `DeckController.answerPad`. */
+export interface AnswerPad {
+  paneKey: string;
+  /** Labels of the question's options (at most 4); empty for a permission prompt or an unknown question. */
+  options: string[];
+}
+
 /** What the Status and Attention keys show. */
 export interface Overview {
   mode: HealthMode;
@@ -60,6 +68,10 @@ export interface Overview {
   topState: DeckState | null;
   /** Urgent panes that are on no key (overflow): the Attention key shows them as "+N". */
   offDeck: number;
+  /** Number of agents working right now, on a key or not (the Working key). */
+  working: number;
+  /** Number of agents that finished since the deck started and were not looked at yet (the Done key). */
+  done: number;
   /** Reads are served by the runtime socket (no CLI spawns). */
   fast: boolean;
 }
@@ -128,6 +140,8 @@ export interface SlotConfig {
 export interface DeckOptions {
   /** Fill slots without a pane with free agent panes (default true). */
   autofill?: boolean;
+  /** Auto-fill takes agent chats only, no terminal panes (the Logi keypad). */
+  autofillChatsOnly?: boolean;
 }
 
 export type PressResult = 'focused' | 'failed' | 'unmapped';
@@ -239,6 +253,12 @@ export class DeckController {
     fast: false,
   };
   private attentionCursor = 0;
+  private workingCursor = 0;
+  /**
+   * Panes whose completion was there when the deck first saw Orca, until they leave it. They count as read: the Done
+   * key shows what finished while you were away, not every chat that ever finished. Null until the first read.
+   */
+  private doneBaseline: Set<string> | null = null;
   private refreshedAt = 0;
   /** When the adapter was last read (see `OrcaAdapter.minReadIntervalMs`). */
   private polledAt = 0;
@@ -261,6 +281,7 @@ export class DeckController {
   private readonly store: MappingStore;
   private readonly raise: Raise | undefined;
   private readonly autofillOn: boolean;
+  private readonly autofillChatsOnly: boolean;
 
   /** Pairing mode (Map pane to key). The plugin sets the callbacks to render state and answer A. */
   readonly pairing: Pairing;
@@ -272,6 +293,7 @@ export class DeckController {
     this.store = store;
     this.raise = raise;
     this.autofillOn = options.autofill ?? true;
+    this.autofillChatsOnly = options.autofillChatsOnly ?? false;
     this.pairing = new Pairing(store, {
       onState: (s) => this.onPairingState?.(s),
       onResult: (r) => {
@@ -519,6 +541,17 @@ export class DeckController {
       const state = this.paneState(pane);
       if (state) this.acks.update(pane.paneKey, state, now);
     }
+    if (!this.doneBaseline && this.orcaRunning) {
+      this.doneBaseline = new Set(
+        this.snapshot.panes
+          .filter((p) => this.acks.view(p.paneKey, now)?.from === 'completed')
+          .map((p) => p.paneKey),
+      );
+    }
+    // A pane leaves the baseline once it is no longer in the completion it had at the first read.
+    for (const key of this.doneBaseline ?? []) {
+      if (this.acks.view(key, now)?.from !== 'completed') this.doneBaseline?.delete(key);
+    }
     if (!this.health.fast || !this.adapter.focusedPaneKey) {
       this.focusedKey = undefined;
       return;
@@ -739,6 +772,45 @@ export class DeckController {
     };
   }
 
+  /**
+   * Sort (the keypad's key 7): the auto-filled slots, in the order given (key number), take the free agent chats in
+   * the order Orca lists them; pinned slots keep their pane. Slots left over are emptied.
+   */
+  resort(slots: string[]): void {
+    const auto = slots.filter((s) => this.store.get(s)?.mode !== 'pinned');
+    const pinned = new Set(
+      slots.flatMap((s) => {
+        const c = this.store.get(s);
+        return c?.mode === 'pinned' && c.pane ? [c.pane.paneKey] : [];
+      }),
+    );
+    const free = this.snapshot.panes.filter(
+      (p) =>
+        (this.autofillChatsOnly ? isChatPaneKey(p.paneKey) : !!p.agentType) &&
+        !p.orphaned &&
+        !pinned.has(p.paneKey) &&
+        !this.released.has(p.paneKey),
+    );
+    auto.forEach((s, i) => {
+      const p = free[i];
+      const cur = this.store.get(s);
+      if (p) this.store.set(s, { ...cur, mode: 'auto', pane: bindingOf(p) });
+      else if (cur?.pane) this.store.remove(s);
+    });
+    this.diag?.(`sorted ${Math.min(auto.length, free.length)} chats onto ${auto.length} auto keys`);
+  }
+
+  /** Focuses the pane Orca has in front again (puts the keyboard focus into it), e.g. before dictating into it. */
+  async focusFront(): Promise<PressResult> {
+    const pane = this.snapshot.panes.find((p) => p.paneKey === this.focusedKey);
+    return pane ? this.focus(pane) : 'unmapped';
+  }
+
+  /** Puts the keyboard focus into the input of the chat Orca shows (before dictating into it). */
+  async focusChatInput(): Promise<boolean> {
+    return (await this.adapter.focusChatInput?.().catch(() => false)) ?? false;
+  }
+
   /** Empties a slot and keeps it empty: auto-fill never touches a pinned slot without a pane. */
   clear(slot: string): void {
     this.diag?.(`slot ${short(slot)} emptied by the picker`);
@@ -846,8 +918,27 @@ export class DeckController {
       urgent: urgent.length,
       topState: urgent[0]?.state ?? null,
       offDeck: urgent.filter((u) => !onKeys.has(u.pane.paneKey)).length,
+      working: this.workingPanes().length,
+      done: this.donePanes().length,
       fast: this.health.fast,
     };
+  }
+
+  /**
+   * The answer pad: while the pane Orca has in front waits for an answer (a question or a permission prompt), the Pane
+   * keys turn into keys that answer it with key presses. Null otherwise, and when Orca cannot say what is in front.
+   */
+  answerPad(): AnswerPad | null {
+    if (!this.orcaRunning || !this.focusedKey) return null;
+    const pane = this.snapshot.panes.find((p) => p.paneKey === this.focusedKey);
+    if (!pane) return null;
+    const status = this.snapshot.statuses.find((e) => e.paneKey === pane.paneKey);
+    const state = this.paneState(pane);
+    // A permission prompt, or a structured question; not a turn that ended with a question in its text.
+    const asks =
+      state === 'needs_input' || (state === 'awaiting_reply' && status?.awaiting === 'question');
+    if (!asks) return null;
+    return { paneKey: pane.paneKey, options: status?.questionOptions ?? [] };
   }
 
   /** Focuses the most urgent pane; repeated presses walk down the list and wrap around. */
@@ -862,32 +953,53 @@ export class DeckController {
     return r;
   }
 
+  /** Focuses a working agent: the one working longest first, repeated presses walk the list and wrap around. */
+  async pressWorking(): Promise<PressResult> {
+    const working = this.workingPanes();
+    if (working.length === 0) return 'unmapped';
+    this.workingCursor %= working.length;
+    const pane = working[this.workingCursor]?.pane;
+    this.workingCursor++;
+    return this.focus(pane);
+  }
+
+  /**
+   * Focuses the agent that finished first and was not looked at since; that reads it, so the next press goes to the
+   * next one.
+   */
+  async pressDone(): Promise<PressResult> {
+    const pane = this.donePanes()[0]?.pane;
+    if (!pane) return 'unmapped';
+    const r = await this.focus(pane);
+    if (r === 'focused') this.ack(pane.paneKey, 'press');
+    return r;
+  }
+
+  /**
+   * Agents that finished and are unread (not focused in Orca, not opened from the deck since), on a key or not; the
+   * one that finished first first. Completions from before the deck first saw Orca do not count.
+   */
+  private donePanes(): { pane: PaneInfo; state: DeckState }[] {
+    const now = Date.now();
+    return this.agentStates()
+      .filter((e) => {
+        if (e.state !== 'completed') return false;
+        const v = this.acks.view(e.pane.paneKey, now);
+        return !!v?.unread && !this.doneBaseline?.has(e.pane.paneKey);
+      })
+      .sort((a, b) => a.lastActivityAt - b.lastActivityAt);
+  }
+
+  /** Agents working right now, on a key or not; the one working longest first. */
+  private workingPanes(): { pane: PaneInfo; state: DeckState }[] {
+    return this.agentStates()
+      .filter((e) => e.state === 'working')
+      .sort((a, b) => a.lastActivityAt - b.lastActivityAt);
+  }
+
   private urgentPanes(): { pane: PaneInfo; state: DeckState }[] {
-    if (!this.orcaRunning) return [];
-    const down = new Set(this.snapshot.omittedHostIds);
     return (
-      this.snapshot.panes
-        .filter((p) => (p.agentType || endedBadly(p)) && !p.orphaned)
-        .map((pane) => {
-          const status = this.snapshot.statuses.find((e) => e.paneKey === pane.paneKey);
-          const { state } = deriveDeckState({
-            mapped: true,
-            orcaRunning: true,
-            found: true,
-            connected: pane.connected,
-            hostDown: down.has(pane.hostId),
-            agentType: pane.agentType,
-            agent: status
-              ? {
-                  state: status.state,
-                  outcome: status.outcome ?? null,
-                  awaiting: status.awaiting ?? null,
-                }
-              : null,
-            exitCause: pane.exitCause ?? null,
-          });
-          return { pane, state, lastActivityAt: status?.stateStartedAt ?? 0 };
-        })
+      this.agentStates()
         // Permission prompts and questions wait for an answer; an error drops out once acknowledged.
         .filter(
           (e) =>
@@ -898,6 +1010,34 @@ export class DeckController {
         // Most urgent state first; within a state the pane that has waited longest.
         .sort((a, b) => rank(a) - rank(b) || a.lastActivityAt - b.lastActivityAt)
     );
+  }
+
+  /** Every agent pane (or one that ended badly) with its key state, as a mapped key would show it. */
+  private agentStates(): { pane: PaneInfo; state: DeckState; lastActivityAt: number }[] {
+    if (!this.orcaRunning) return [];
+    const down = new Set(this.snapshot.omittedHostIds);
+    return this.snapshot.panes
+      .filter((p) => (p.agentType || endedBadly(p)) && !p.orphaned)
+      .map((pane) => {
+        const status = this.snapshot.statuses.find((e) => e.paneKey === pane.paneKey);
+        const { state } = deriveDeckState({
+          mapped: true,
+          orcaRunning: true,
+          found: true,
+          connected: pane.connected,
+          hostDown: down.has(pane.hostId),
+          agentType: pane.agentType,
+          agent: status
+            ? {
+                state: status.state,
+                outcome: status.outcome ?? null,
+                awaiting: status.awaiting ?? null,
+              }
+            : null,
+          exitCause: pane.exitCause ?? null,
+        });
+        return { pane, state, lastActivityAt: status?.stateStartedAt ?? 0 };
+      });
   }
 
   private async focus(pane: PaneInfo | undefined): Promise<PressResult> {
@@ -956,10 +1096,30 @@ export class DeckController {
       }
       return;
     }
+    // Chats only (the keypad): terminals and other panes go on a key only when mapped by hand, and a terminal an
+    // earlier version auto-filled leaves its key.
+    for (const s of slots) {
+      const cur = this.store.get(s);
+      if (
+        this.autofillChatsOnly &&
+        cur?.pane &&
+        cur.mode !== 'pinned' &&
+        !isChatPaneKey(cur.pane.paneKey)
+      ) {
+        this.diag?.(
+          `slot ${short(s)} emptied: auto-fill takes chats only (was ${cur.pane.paneKey})`,
+        );
+        this.store.remove(s);
+      }
+    }
     const taken = this.store.mappedPaneKeys();
     const free = this.snapshot.panes
       .filter(
-        (p) => p.agentType && !p.orphaned && !taken.has(p.paneKey) && !this.released.has(p.paneKey),
+        (p) =>
+          (this.autofillChatsOnly ? isChatPaneKey(p.paneKey) : !!p.agentType) &&
+          !p.orphaned &&
+          !taken.has(p.paneKey) &&
+          !this.released.has(p.paneKey),
       )
       .sort((a, b) => a.paneKey.localeCompare(b.paneKey));
     for (const s of slots) {

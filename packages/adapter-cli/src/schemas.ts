@@ -75,6 +75,14 @@ export const terminalShowResponse = envelope(
 
 export const agentEntry = z.object({
   paneKey: z.string(),
+  /** Set on agent chats (structured agent sessions): the session id in the chat's tab id. */
+  orcaSessionId: z.string().nullish(),
+  /** A subagent's parent pane; subagents get no pane of their own. */
+  parentPaneKey: z.string().nullish(),
+  /** Chat names, best first: renamed by the user, generated from the conversation, the task. */
+  displayName: z.string().nullish(),
+  conversationName: z.string().nullish(),
+  taskTitle: z.string().nullish(),
   state: z.string(),
   agentType: z.string().nullish(),
   toolName: z.string().nullish(),
@@ -190,6 +198,14 @@ export const statusResponse = envelope(
 
 export const switchResponse = envelope(
   z.object({ focus: z.object({ navigated: z.boolean() }).optional() }),
+);
+
+/**
+ * `session.tabs.list` (runtime only): the tab the worktree shows, also when it is an agent chat, which the
+ * terminal layout tree does not know (`activeTabId` = `agent-session:<sessionId>`).
+ */
+export const sessionTabsResponse = envelope(
+  z.object({ activeTabId: z.string().nullish(), activeTabType: z.string().nullish() }),
 );
 
 /** `terminal.reveal` on this Orca: shows a pane of a paired server in the window. */

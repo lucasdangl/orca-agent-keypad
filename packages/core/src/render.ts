@@ -63,6 +63,7 @@ const PALETTE: Record<DeckState, { bg: string; fg: string }> = {
 };
 
 const FOCUS_BG = '#f4f4f4';
+const BLINK_OFF_BG = '#1c1c1c';
 
 const HIGH_CONTRAST: Partial<Record<DeckState, { bg: string; fg: string }>> = {
   idle: { bg: '#000000', fg: '#ffffff' },
@@ -246,7 +247,7 @@ const RIGHT = 144 - MX;
  * What a key says, as attributes of the root element: the replay suite reads the semantic state back from the image
  * through `decodeKey` instead of a second renderer. For an info key: state = tone, label = caption, line2 = value.
  */
-const markers = (
+export const keyMarkers = (
   state: string,
   label: string,
   line2: string,
@@ -341,7 +342,7 @@ export function renderKey(m: KeyModel, o: RenderOptions = {}): string {
   const iconX = glyph || orca ? MX + 32 : MX;
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 144 144" ` +
-    markers(m.state, m.label, m.line2, kind, m.keyNumber) +
+    keyMarkers(m.state, m.label, m.line2, kind, m.keyNumber) +
     `style="--bg:${pal.bg}" font-family="${FONT_STACK}" font-weight="400" color="${pal.fg}" fill="${pal.fg}">` +
     `<rect width="144" height="144" fill="${pal.bg}"/>` +
     badge +
@@ -356,34 +357,122 @@ export function renderKey(m: KeyModel, o: RenderOptions = {}): string {
   );
 }
 
-/** A key that shows one big value (Status / Attention): colour of `tone`, value in the middle, caption below. */
+/** A key that shows one big value (Status / Attention / Working): colour of `tone`, value in the middle, caption below. */
 export interface InfoModel {
   tone: DeckState;
   value: string;
   caption: string;
+  /**
+   * Draw the value large, under a small glyph, on a gradient, without the caption (it stays in the markers for tests
+   * and the simulator). Used by Attention and Working.
+   */
+  glyph?: InfoGlyph;
 }
 
-export function renderInfoKey(m: InfoModel, o: RenderOptions = {}): string {
+export type InfoGlyph = 'attention' | 'working' | 'done';
+
+/** Gradient (light top left, darker bottom right) and text colour of a glyph key per tone. */
+const GLYPH_PALETTE: Partial<Record<DeckState, { from: string; to: string; fg: string }>> = {
+  unmapped: { from: '#3a3a3a', to: '#1f1f1f', fg: '#8c8c8c' },
+  working: { from: '#a8c9ff', to: '#5a8dff', fg: '#0b1f3a' },
+  completed: { from: '#a6f0e8', to: '#1fb3a6', fg: '#032b28' },
+  needs_input: { from: '#ffe28f', to: '#ffb21f', fg: '#2b1d00' },
+  awaiting_reply: { from: '#ffc98a', to: '#ff8a26', fg: '#2e1500' },
+  error: { from: '#ffb8b8', to: '#ff6262', fg: '#3a0a0a' },
+};
+
+/** Glyphs on a 28 x 28 grid, drawn in `c`; `bg` cuts shapes out of a filled glyph. */
+const GLYPHS: Record<InfoGlyph, (c: string, bg: string) => string> = {
+  attention: (c) =>
+    `<path d="M14 3 C9.2 3 6.5 6.6 6.5 11.5 V17 L3.5 21.5 H24.5 L21.5 17 V11.5 C21.5 6.6 18.8 3 14 3 Z" fill="${c}"/>` +
+    `<path d="M10.5 24 A3.5 3.5 0 0 0 17.5 24 Z" fill="${c}"/>`,
+  working: (c) =>
+    `<circle cx="14" cy="14" r="10" fill="none" stroke="${c}" stroke-width="3.5" opacity="0.35"/>` +
+    `<path d="M14 4 A10 10 0 0 1 24 14" fill="none" stroke="${c}" stroke-width="3.5" stroke-linecap="round"/>`,
+  done: (c, bg) =>
+    `<circle cx="14" cy="14" r="11" fill="${c}"/>` +
+    `<path d="M8.5 14.5 L12.5 18.5 L19.5 10" fill="none" stroke="${bg}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>`,
+};
+
+export function renderInfoKey(
+  m: InfoModel,
+  o: RenderOptions & { blinkOff?: boolean } = {},
+): string {
   const size = o.size ?? 144;
-  const pal = (o.highContrast && HIGH_CONTRAST[m.tone]) || PALETTE[m.tone];
+  const head =
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 144 144" ` +
+    keyMarkers(m.tone, m.caption, m.value);
+  if (m.glyph && !o.highContrast)
+    return head + glyphKey(m, m.glyph, o.blinkOff === true) + `</svg>`;
+  const on = (o.highContrast && HIGH_CONTRAST[m.tone]) || PALETTE[m.tone];
+  // The dark phase of a blinking key: the state colour moves to the text, so the count stays readable.
+  const pal = o.blinkOff ? { bg: BLINK_OFF_BG, fg: on.bg } : on;
   const { lines, size: fs } = layoutLabel(m.caption);
-  const caption = lines
+  const caption = (m.glyph ? [] : lines)
     .slice(0, 2)
     .map(
       (l, i) =>
         `<text x="72" y="${(112 + i * 16).toFixed(1)}" font-size="${Math.min(fs, 16)}" text-anchor="middle">${esc(l)}</text>`,
     )
     .join('');
+  const long = m.value.length > 3;
+  const [vs, vy] = m.glyph ? (long ? [48, 89] : [80, 100]) : long ? [40, 84] : [56, 84];
   return (
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 144 144" ` +
-    markers(m.tone, m.caption, m.value) +
+    head +
     `font-family="${FONT_STACK}" font-weight="500" fill="${pal.fg}">` +
     `<rect width="144" height="144" fill="${pal.bg}"/>` +
-    `<text x="72" y="84" font-size="${m.value.length > 3 ? 40 : 56}" text-anchor="middle">${esc(m.value)}</text>` +
+    `<text x="72" y="${vy}" font-size="${vs}" text-anchor="middle">${esc(m.value)}</text>` +
     caption +
     `</svg>`
   );
 }
+
+/**
+ * Attention / Working: a gradient in the tone's colour, the glyph at the top, the value large and bold below it. In
+ * the dark phase of a blink the key turns near black and glyph, value and a thin frame take the tone's colour.
+ */
+function glyphKey(m: InfoModel, glyph: InfoGlyph, dark: boolean): string {
+  const pal = GLYPH_PALETTE[m.tone] ?? {
+    from: PALETTE[m.tone].bg,
+    to: PALETTE[m.tone].bg,
+    fg: PALETTE[m.tone].fg,
+  };
+  const fg = dark ? pal.to : pal.fg;
+  const long = m.value.length > 3;
+  const [vs, vy] = long ? [44, 112] : [74, 124];
+  const bg = dark
+    ? `<rect width="144" height="144" fill="${BLINK_OFF_BG}"/>` +
+      `<rect x="3" y="3" width="138" height="138" rx="10" fill="none" stroke="${pal.to}" stroke-width="4" opacity="0.7"/>`
+    : // The flat rect is the fallback for a renderer without gradients.
+      `<rect width="144" height="144" fill="${pal.to}"/>` +
+      `<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">` +
+      `<stop offset="0" stop-color="${pal.from}"/><stop offset="1" stop-color="${pal.to}"/>` +
+      `</linearGradient></defs><rect width="144" height="144" fill="url(#g)"/>`;
+  return (
+    `font-family="${FONT_STACK}" font-weight="700" fill="${fg}">` +
+    bg +
+    `<g transform="translate(51 10) scale(1.5)" opacity="${m.tone === 'unmapped' ? 0.7 : 0.85}">${GLYPHS[glyph](fg, dark ? BLINK_OFF_BG : pal.to)}</g>` +
+    `<text x="72" y="${vy}" font-size="${vs}" text-anchor="middle">${esc(m.value)}</text>`
+  );
+}
+
+/** Done key content: how many agents finished and were not looked at yet (on a key or not). */
+export function doneInfo(done: number): InfoModel {
+  return done === 0
+    ? { tone: 'unmapped', value: '0', caption: 'nothing new', glyph: 'done' }
+    : { tone: 'completed', value: String(done), caption: 'done', glyph: 'done' };
+}
+
+/** Working key content: how many agents work right now (on a key or not). */
+export function workingInfo(working: number): InfoModel {
+  return working === 0
+    ? { tone: 'unmapped', value: '0', caption: 'none working', glyph: 'working' }
+    : { tone: 'working', value: String(working), caption: 'working', glyph: 'working' };
+}
+
+/** Does this Attention key content ask for the user (it blinks then)? */
+export const attentionBlinks = (m: InfoModel): boolean =>
+  m.tone === 'needs_input' || m.tone === 'awaiting_reply' || m.tone === 'error';
 
 /** Status key content: health mode and the worst problem. */
 export function statusInfo(o: {
@@ -413,11 +502,13 @@ export function statusInfo(o: {
  * the ones that are on no key.
  */
 export function attentionInfo(urgent: number, top: DeckState | null, offDeck = 0): InfoModel {
-  if (urgent === 0 || !top) return { tone: 'unmapped', value: '0', caption: 'all calm' };
+  if (urgent === 0 || !top)
+    return { tone: 'unmapped', value: '0', caption: 'all calm', glyph: 'attention' };
   const caption = top === 'error' ? 'errors' : 'need you';
   return {
     tone: top,
     value: String(urgent),
     caption: offDeck > 0 ? `${caption} +${offDeck}` : caption,
+    glyph: 'attention',
   };
 }

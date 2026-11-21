@@ -42,6 +42,52 @@ it('autofills free agent panes into empty slots and shows their state', async ()
   expect(v.get('s3')?.state).toBe('unmapped');
 });
 
+it('with autofill on chats only, terminals stay off the keys and lose earlier auto-filled ones', async () => {
+  const chat = 'structured-agent-session-s1:leaf-1';
+  const snap: Snapshot = {
+    panes: [pane('a:1'), pane(chat, { kind: 'chat', handle: '' })],
+    statuses: [],
+    omittedHostIds: [],
+  };
+  const store = new MappingStore();
+  // An earlier version auto-filled the terminal a:1 onto s1.
+  await new DeckController(fake(snap).a, store).refresh(['s1']);
+  expect(store.get('s1')?.pane?.paneKey).toBe('a:1');
+  const d = new DeckController(fake(snap).a, store, undefined, { autofillChatsOnly: true });
+  await d.refresh(['s1', 's2']);
+  expect(store.get('s1')?.pane?.paneKey).toBe(chat);
+  expect(store.get('s2')?.pane).toBeUndefined();
+  // A terminal mapped by hand stays.
+  d.configure('s2', { paneKey: 'a:1' });
+  await d.refresh(['s1', 's2']);
+  expect(store.get('s2')?.pane?.paneKey).toBe('a:1');
+});
+
+it("resort puts the free chats onto the auto keys in Orca's order, pinned keys stay", async () => {
+  const c = (n: string) => `structured-agent-session-${n}:leaf`;
+  const snap: Snapshot = {
+    panes: [
+      pane(c('one'), { kind: 'chat' }),
+      pane(c('two'), { kind: 'chat' }),
+      pane(c('three'), { kind: 'chat' }),
+    ],
+    statuses: [],
+    omittedHostIds: [],
+  };
+  const store = new MappingStore();
+  const d = new DeckController(fake(snap).a, store, undefined, { autofillChatsOnly: true });
+  await d.refresh(['s1', 's2', 's3', 's4']);
+  // Scramble: s1 pinned to three, s3 auto on one, s2 and s4 empty.
+  d.configure('s1', { paneKey: c('three') });
+  store.set('s2', { mode: 'auto' });
+  store.set('s3', { mode: 'auto', pane: store.get('s2')?.pane ?? undefined });
+  d.resort(['s1', 's2', 's3', 's4']);
+  expect(store.get('s1')?.pane?.paneKey).toBe(c('three'));
+  expect(store.get('s2')?.pane?.paneKey).toBe(c('one'));
+  expect(store.get('s3')?.pane?.paneKey).toBe(c('two'));
+  expect(store.get('s4')?.pane).toBeUndefined();
+});
+
 it('with autofill off, keys show pinned panes only and lose earlier auto-filled ones', async () => {
   const snap: Snapshot = { panes: [pane('a:1'), pane('b:1')], statuses: [], omittedHostIds: [] };
   const store = new MappingStore();
@@ -257,6 +303,41 @@ it('overview counts urgent panes and press cycles through them, oldest first', a
   await d.pressAttention();
   await d.pressAttention();
   expect(focused).toEqual(['h-b:1', 'h-a:1', 'h-b:1']);
+});
+
+it('Done counts unread completions since the first read, and a press opens and reads the one that finished first', async () => {
+  const snap: Snapshot = {
+    panes: [pane('a:1'), pane('b:1'), pane('c:1')],
+    // a:1 finished before the deck first saw Orca: it counts as read.
+    statuses: [{ paneKey: 'a:1', state: 'done', stateStartedAt: 10 }],
+    omittedHostIds: [],
+  };
+  const { a, focused } = fake(snap);
+  const d = new DeckController(a, new MappingStore());
+  await d.refresh([], { force: true });
+  expect(d.overview().done).toBe(0);
+  expect(await d.pressDone()).toBe('unmapped');
+
+  snap.statuses = [
+    { paneKey: 'a:1', state: 'done', stateStartedAt: 10 },
+    { paneKey: 'b:1', state: 'done', stateStartedAt: 300 },
+    { paneKey: 'c:1', state: 'done', stateStartedAt: 200 },
+  ];
+  await d.refresh([], { force: true });
+  expect(d.overview().done).toBe(2);
+  await d.pressDone();
+  expect(focused).toEqual(['h-c:1']);
+  expect(d.overview().done).toBe(1);
+  await d.pressDone();
+  expect(focused).toEqual(['h-c:1', 'h-b:1']);
+  expect(d.overview().done).toBe(0);
+
+  // a:1 works again and finishes: a new completion, unread.
+  snap.statuses = [{ paneKey: 'a:1', state: 'working', stateStartedAt: 400 }];
+  await d.refresh([], { force: true });
+  snap.statuses = [{ paneKey: 'a:1', state: 'done', stateStartedAt: 500 }];
+  await d.refresh([], { force: true });
+  expect(d.overview().done).toBe(1);
 });
 
 it('overview is down and attention is empty when Orca is not running', async () => {

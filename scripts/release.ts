@@ -1,5 +1,6 @@
 // Release helper. Single version source: root package.json (SemVer).
-//   release.ts version <x.y.z>   set version in package.json files, the Stream Deck manifest and orca-plugin/main.mjs
+//   release.ts version <x.y.z>   set version in package.json files, the Stream Deck manifest, orca-plugin/main.mjs and the
+//                                Logi plugin (LoupedeckPackage.yaml, the .csproj, the daemon's DAEMON_VERSION)
 //   release.ts notes             write CHANGELOG.md section + dist/RELEASE_NOTES.md from conventional commits
 //   release.ts checksums         write dist/SHA256SUMS for the plugins, the Orca zip and the diagnostics script
 //   release.ts validate [tag]    check both manifests agree with package.json (and the tag, in CI)
@@ -22,6 +23,17 @@ const orcaManifest = join(root, 'orca-plugin/orca-plugin.json');
 const orcaMain = join(root, 'orca-plugin/main.mjs');
 const PLUGIN_VERSION_RE = /(export const PLUGIN_VERSION = ')[^']*(')/;
 const rootOrcaManifest = join(root, 'orca-plugin.json');
+const logiDir = join(root, 'logi-plugin/OrcaKeypadPlugin/src');
+const logiYaml = join(logiDir, 'package/metadata/LoupedeckPackage.yaml');
+const logiProj = join(logiDir, 'OrcaKeypadPlugin.csproj');
+const daemonSrc = join(root, 'packages/logi-daemon/src/daemon.ts');
+const logiPkg = join(root, 'packages/logi-daemon/package.json');
+/** The Logi plugin's version in its three places: [file, pattern with the version as group 2]. */
+const LOGI_VERSIONS: [string, RegExp][] = [
+  [logiYaml, /^(version: )(\S+)()$/m],
+  [logiProj, /(<Version>)([^<]+)(<\/Version>)/],
+  [daemonSrc, /(export const DAEMON_VERSION = ')([^']+)(')/],
+];
 const changelog = join(root, 'CHANGELOG.md');
 const dist = join(root, 'dist');
 
@@ -42,8 +54,14 @@ const currentVersion = (): string => String(readJson(rootPkg).version);
 function setVersion(version: string): void {
   const m = SEMVER.exec(version);
   if (!m) throw new Error(`not a SemVer version: ${version}`);
-  for (const file of [rootPkg, sdPkg, orcaManifest])
+  for (const file of [rootPkg, sdPkg, orcaManifest, logiPkg])
     writeJson(file, { ...readJson(file), version });
+  for (const [file, re] of LOGI_VERSIONS) {
+    const text = readFileSync(file, 'utf8');
+    if (!re.test(text)) throw new Error(`version not found in ${file}`);
+    writeFileSync(file, text.replace(re, `$1${version}$3`));
+  }
+  writeRootManifest();
   // The version the Orca plugin reports to the Stream Deck plugin.
   const main = readFileSync(orcaMain, 'utf8');
   // Compare on the pattern, not the result: re-setting the current version changes nothing.
@@ -136,7 +154,7 @@ function writeNotes(): void {
 
 function writeChecksums(): void {
   const files = readdirSync(dist)
-    .filter((f) => /\.(streamDeckPlugin|zip|mjs)$/.test(f))
+    .filter((f) => /\.(streamDeckPlugin|lplug4|zip|mjs)$/.test(f))
     .sort();
   if (files.length === 0) throw new Error('no artifacts in dist/');
   const lines = files.map(
@@ -195,6 +213,14 @@ function validate(tag?: string): void {
     if (!orca.main || !existsSync(join(root, 'orca-plugin', orca.main)))
       problems.push(`orca-plugin.json main ${orca.main} not found`);
   }
+  for (const [file, re] of LOGI_VERSIONS) {
+    const found = re.exec(readFileSync(file, 'utf8'))?.[2];
+    if (found !== version)
+      problems.push(`${file.slice(root.length)} version ${found} is not ${version}`);
+  }
+  if (readJson(logiPkg).version !== version)
+    problems.push(`packages/logi-daemon/package.json version is not ${version}`);
+
   // The root copy is written by `release.ts root-manifest`.
   if (existsSync(rootOrcaManifest) && readFileSync(rootOrcaManifest, 'utf8') !== rootManifestText())
     problems.push(

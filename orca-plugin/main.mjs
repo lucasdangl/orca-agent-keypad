@@ -1,5 +1,5 @@
-// Agent Deck for Orca plugin A (trusted-worker). Single ESM file, no dependencies.
-// Finds plugin B (the Stream Deck plugin) through its discovery file, proves the shared token,
+// Agent Keypad for Orca plugin A (trusted-worker). Single ESM file, no dependencies.
+// Finds plugin B (the keypad plugin) through its discovery file, proves the shared token,
 // forwards agent status, and reconnects on every activate.
 // Never log tokens or terminal content.
 import net from 'node:net';
@@ -11,7 +11,7 @@ import { dirname, join, posix, win32 } from 'node:path';
 export const PROTOCOL_VERSION = 1;
 /** Additive features of this major: 1 = the deck grid for the sidebar panel, 2 = B opens that panel for us, 3 = a deck press selects the key in that panel (see docs/bridge-protocol.md). */
 export const PROTOCOL_MINOR = 5;
-export const PLUGIN_VERSION = '0.3.1';
+export const PLUGIN_VERSION = '0.4.0';
 const GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11';
 
 const here = () => ({ platform: process.platform, env: process.env, homedir: homedir() });
@@ -184,7 +184,7 @@ export function createBridge({
   let state = 'disconnected';
   let timer = null;
   let deck = null;
-  /** B's protocol minor from `helloAck` (0 for a Stream Deck plugin that tells none), and which connection it is. */
+  /** B's protocol minor from `helloAck` (0 for a keypad plugin that tells none), and which connection it is. */
   let peerMinor = 0;
   let session = 0;
   /** Set while B speaks another bridge major: A must not use its messages and says so. */
@@ -195,7 +195,7 @@ export function createBridge({
   let connectedTo = null;
   const sameB = (a, b) => a.pid === b.pid && a.port === b.port && a.token === b.token;
   /**
-   * Every B writes a new bridge.json, but an open socket never looks at it: after the Stream Deck app is swapped
+   * Every B writes a new bridge.json, but an open socket never looks at it: after the device app is swapped
    * (Elgato <-> OpenDeck) A would stay on the old B for good. Drop the socket when the file names another B.
    */
   const follow = setInterval(async () => {
@@ -204,9 +204,7 @@ export function createBridge({
     try {
       const now = JSON.parse(await readFile(discoveryPath, 'utf8'));
       if (ws !== socket || sameB(connectedTo, now)) return;
-      log(
-        `bridge: a newer Stream Deck plugin (pid ${now.pid}) owns the discovery file, reconnecting`,
-      );
+      log(`bridge: a newer keypad plugin (pid ${now.pid}) owns the discovery file, reconnecting`);
       delay = retryMs;
       socket.close();
     } catch {
@@ -240,7 +238,7 @@ export function createBridge({
       disc = JSON.parse(await readFile(discoveryPath, 'utf8'));
     } catch {
       setState('b-not-running');
-      log('bridge file not found, Stream Deck plugin not running');
+      log('bridge file not found, keypad plugin not running');
       delay = Math.min(delay, pollMs);
       return schedule();
     }
@@ -267,7 +265,7 @@ export function createBridge({
           versionNote = `B speaks bridge ${String(msg.v)}, this plugin ${PROTOCOL_VERSION}`;
           onChange();
           log(
-            `bridge: ${versionNote}: update Agent Deck for Orca (both plugins from the same release)`,
+            `bridge: ${versionNote}: update Agent Keypad for Orca (both plugins from the same release)`,
           );
           return socket.close();
         }
@@ -308,7 +306,7 @@ export function createBridge({
           deck = msg.deck ?? null;
           peerMinor = Number.isInteger(msg.minor) && msg.minor > 0 ? msg.minor : 0;
           session++;
-          log('connected to Agent Deck for Orca');
+          log('connected to Agent Keypad for Orca');
           onChange();
           onAck(msg);
         } else if (msg?.type) {
@@ -327,13 +325,13 @@ export function createBridge({
         schedule();
       },
     });
-    // An older Stream Deck plugin never sends a challenge; anything else on the port may say nothing.
+    // An older keypad plugin never sends a challenge; anything else on the port may say nothing.
     const deadline = setTimeout(() => {
       if (proven) return;
       log(
         challenge
           ? 'bridge: the peer on the bridge port sent no proof, closing'
-          : 'bridge: no challenge on the bridge port (Stream Deck plugin older than this one, or not Agent Deck for Orca), closing',
+          : 'bridge: no challenge on the bridge port (keypad plugin older than this one, or not Agent Keypad for Orca), closing',
       );
       socket.close();
     }, handshakeMs);
@@ -429,7 +427,7 @@ const fileLog = (msg) =>
         .catch(() => {});
 
 /**
- * Removes the Agent Deck for Orca data dir (bridge.json, mappings.json, this plugin's log) and nothing else: the target must be
+ * Removes the Agent Keypad for Orca data dir (bridge.json, mappings.json, this plugin's log) and nothing else: the target must be
  * exactly what `deckDataDir` says and end in `orca-deck` or `.orca-deck`, never the home dir or a root.
  */
 export async function removeDeckData(target, h = here(), remove = rm) {
@@ -452,7 +450,7 @@ export const UNINSTALL_CONFIRM_MS = 10_000;
 
 /** What the "Uninstall" toast says (max 200 characters): the data is gone, the two plugins are removed by hand. */
 export const uninstallText = (dir) =>
-  `Removed ${dir}. Remove the Stream Deck plugin too, or it recreates your mappings (Elgato app: Preferences, Plugins; OpenDeck: Plugins), then this plugin in Orca Settings.`.slice(
+  `Removed ${dir}. Remove the keypad plugin in Logi Options+ too, or it recreates your mappings, then this plugin in Orca Settings.`.slice(
     0,
     200,
   );
@@ -673,18 +671,18 @@ export function createRecorder({
 
 const label = {
   connected: 'Orca plugin connected',
-  connecting: 'Connecting to the Stream Deck plugin',
-  'b-not-running': 'Stream Deck plugin not running',
-  disconnected: 'Disconnected from the Stream Deck plugin',
+  connecting: 'Connecting to the keypad plugin',
+  'b-not-running': 'Keypad plugin not running',
+  disconnected: 'Disconnected from the keypad plugin',
 };
 
 /** One-line status for the command toast, within Orca's 200 character limit; ends with the log file. */
 export function statusSummary({ state, deck, seen, tracked, ago, versionNote = null }) {
   const link = !deck
-    ? 'no Stream Deck plugin link'
-    : `Stream Deck app ${deck.connected ? 'connected' : 'not connected'}, ${deck.devices.length} device(s)`;
+    ? 'no keypad plugin link'
+    : `Logi Options+ ${deck.connected ? 'connected' : 'not connected'}, ${deck.devices.length} device(s)`;
   const tail = ' Log: ~/.orca-deck/plugin-a.log';
-  const update = versionNote ? 'Update Agent Deck for Orca. ' : '';
+  const update = versionNote ? 'Update Agent Keypad for Orca. ' : '';
   const body = `${update}${label[state] ?? state}. ${link}. Events ${seen.status} (${seen.forwarded} fwd), last ${ago(seen.lastAt)}; ${tracked} pane(s).`;
   return body.slice(0, 200 - tail.length) + tail;
 }
@@ -692,35 +690,34 @@ export function statusSummary({ state, deck, seen, tracked, ago, versionNote = n
 const STATUS_ITEM = 'deck';
 const PANEL_ID = 'deck';
 const OPEN_TIP =
-  'Open Agent Deck: the panel to map terminal panes to Stream Deck keys (shortcut: Cmd+Option+K, Ctrl+Alt+K on Windows and Linux)';
+  'Open Agent Keypad: the panel to map Orca panes and agent chats to keypad keys (shortcut: Cmd+Option+K, Ctrl+Alt+K on Windows and Linux)';
 
 /**
- * The status bar button (`contributes.statusBarItems`, id `deck`): it always runs Open panel (the Agent Deck
+ * The status bar button (`contributes.statusBarItems`, id `deck`): it always runs Open panel (the Agent Keypad
  * panel), and its text says when that cannot work. Null while connecting, so a reconnect does not flicker.
  * `deckConnected` is the last `deckState` of this connection, else what `helloAck` said.
  */
 export function statusBarItem({ state, deck, versionNote = null, deckConnected = null }) {
   if (versionNote)
     return {
-      text: 'Update Agent Deck',
+      text: 'Update Agent Keypad',
       tone: 'warning',
-      tooltip: 'The Orca and Stream Deck plugins are from different releases: update both',
+      tooltip: 'The Orca and keypad plugins are from different releases: update both',
     };
   if (state === 'connecting') return null;
   if (state !== 'connected')
     return {
       text: 'Deck offline',
       tone: 'warning',
-      tooltip:
-        'Agent Deck: the Stream Deck plugin is not running (open the Elgato app or OpenDeck)',
+      tooltip: 'Agent Keypad: the keypad plugin is not running (open Logi Options+)',
     };
   if (!(deckConnected ?? deck?.connected ?? false))
     return {
-      text: 'No Stream Deck',
+      text: 'No keypad',
       tone: 'warning',
-      tooltip: 'Agent Deck: the Stream Deck app shows no device with Agent Deck keys',
+      tooltip: 'Agent Keypad: Logi Options+ shows no keypad with Agent Keypad keys',
     };
-  return { text: 'Agent Deck', tone: 'neutral', tooltip: OPEN_TIP };
+  return { text: 'Agent Keypad', tone: 'neutral', tooltip: OPEN_TIP };
 }
 
 /** How long the panel waits for the deck's state, and for the result of a click. */
@@ -757,7 +754,7 @@ export async function hideRightSidebar(orca, log = () => {}) {
 }
 
 /**
- * What the Agent Deck sidebar panel asks the worker (`plugin.request` in the panel, `orca.panels.handle`
+ * What the Agent Keypad sidebar panel asks the worker (`plugin.request` in the panel, `orca.panels.handle`
  * here). The deck is B's: this only asks for its state and forwards clicks as `assignKey` / `unmapKey`, and
  * B checks the key and resolves the focused pane. `deckState` and `pairResult` arrive through `onMessage`.
  */
@@ -814,7 +811,7 @@ export function createPanelApi(
       const end = Date.now() + deckWaitMs;
       while (!current() && Date.now() < end) await sleep(50);
     }
-    // A Stream Deck plugin of this minor answers at once: silence means it is not the one we know.
+    // A keypad plugin of this minor answers at once: silence means it is not the one we know.
     if (!current()) return { status: 'update' };
     const key = picked && Date.now() - picked.at < PICKED_FRESH_MS ? picked.key : undefined;
     picked = null;
@@ -914,8 +911,8 @@ export function createPanelApi(
 const OFFLINE_PUSH_MS = 1000;
 
 /**
- * Tells the panel when the link to the Stream Deck plugin is gone, since it only learns by asking (`deck.get`). A drop
- * is told after `delayMs` of staying down (a switch of the Stream Deck plugin reconnects within that and must not
+ * Tells the panel when the link to the keypad plugin is gone, since it only learns by asking (`deck.get`). A drop
+ * is told after `delayMs` of staying down (a switch of the keypad plugin reconnects within that and must not
  * flicker); the deck B pushes after the next handshake brings the grid back.
  */
 export function createLinkNotifier({ bridge, post, delayMs = OFFLINE_PUSH_MS }) {
@@ -1042,26 +1039,26 @@ export default async function activate(orca) {
     panelApi.forgetView();
     return true;
   };
-  // The status bar button, the shortcut and the palette toggle the Agent Deck panel: in view, they hide the right
+  // The status bar button, the shortcut and the palette toggle the Agent Keypad panel: in view, they hide the right
   // sidebar (`commands.run`, which needs the workspace:write capability; Orca's API cannot hide a single panel);
   // otherwise B shows the panel, which opens the key of the pane Orca has focused, if it is on one.
   orca.commands.register('deck.map', async () => {
     log(
       `panel toggle: in view ${panelApi.inView()} (last report ${panelApi.viewAge() ?? 'none'} ms ago)`,
     );
-    if (await hideIfInView()) return 'Agent Deck panel hidden (the right sidebar)';
+    if (await hideIfInView()) return 'Agent Keypad panel hidden (the right sidebar)';
     await bridge.ensure();
     await new Promise((r) => setTimeout(r, 300));
     const { state, deck } = bridge.status();
-    if (state !== 'connected') return 'Stream Deck plugin not running';
-    if (!deck?.connected) return 'Stream Deck not connected';
+    if (state !== 'connected') return 'Keypad plugin not running';
+    if (!deck?.connected) return 'Keypad not connected';
     const opened = await panelApi.open(PANEL_ID);
     if (!opened.ok) {
       log(`panel not opened (${opened.reason})`);
-      return 'Could not open the Agent Deck panel: open it from the sidebar';
+      return 'Could not open the Agent Keypad panel: open it from the sidebar';
     }
     panelApi.opened();
-    return 'Agent Deck panel';
+    return 'Agent Keypad panel';
   });
   // Orca's plugin API has no confirm dialog (and notifications stay off), so Uninstall asks twice: the first run only arms.
   let armedAt = 0;
@@ -1069,7 +1066,7 @@ export default async function activate(orca) {
     const dir = deckDataDir(here());
     if (Date.now() - armedAt > UNINSTALL_CONFIRM_MS) {
       armedAt = Date.now();
-      return `Run Agent Deck: Uninstall again within ${UNINSTALL_CONFIRM_MS / 1000} s to remove ${dir} (bridge file, key mappings, recordings, this plugin's log).`.slice(
+      return `Run Agent Keypad: Uninstall again within ${UNINSTALL_CONFIRM_MS / 1000} s to remove ${dir} (bridge file, key mappings, recordings, this plugin's log).`.slice(
         0,
         200,
       );
@@ -1081,7 +1078,7 @@ export default async function activate(orca) {
     uninstalled = true;
     await removeDeckData(dir);
     orca.log?.(
-      `uninstall: removed ${dir}; remove the Stream Deck plugin in the Elgato app or OpenDeck, then this plugin in Orca`,
+      `uninstall: removed ${dir}; remove the keypad plugin in Logi Options+, then this plugin in Orca`,
     );
     return uninstallText(dir);
   });
@@ -1094,7 +1091,7 @@ export default async function activate(orca) {
     }
     const file = await recorder.start();
     log(`record: started, writing to ${file}`);
-    return `Recording events to ${file}. Run Agent Deck: Record events again to stop (it stops by itself after 10 min or 5 MB).`.slice(
+    return `Recording events to ${file}. Run Agent Keypad: Record events again to stop (it stops by itself after 10 min or 5 MB).`.slice(
       0,
       200,
     );
@@ -1103,7 +1100,7 @@ export default async function activate(orca) {
     await bridge.ensure();
     await new Promise((r) => setTimeout(r, 300));
     const { state, deck, versionNote } = bridge.status();
-    if (versionNote) log(`status: update Agent Deck for Orca: ${versionNote}`);
+    if (versionNote) log(`status: update Agent Keypad for Orca: ${versionNote}`);
     // Never a toast or OS notification: the deck is the attention surface and notifications may be off.
     // Counts and ages only, never pane titles, terminal content or the bridge token.
     const ago = (t) => (t ? `${Math.round((Date.now() - t) / 1000)}s ago` : 'none yet');
@@ -1113,13 +1110,13 @@ export default async function activate(orca) {
     );
     log(
       deck
-        ? `status: Stream Deck app ${deck.connected ? 'connected' : 'not connected'}, ${deck.devices.length} device(s)${deck.devices.map((d) => ` ${d.model}/${d.keys} keys`).join(',')}`
-        : `status: no Stream Deck plugin link (discovery file ${bridge.discoveryPath})`,
+        ? `status: Logi Options+ ${deck.connected ? 'connected' : 'not connected'}, ${deck.devices.length} device(s)${deck.devices.map((d) => ` ${d.model}/${d.keys} keys`).join(',')}`
+        : `status: no keypad plugin link (discovery file ${bridge.discoveryPath})`,
     );
     log(
       `status: agent events ${seen.status} (${seen.forwarded} forwarded), last ${ago(seen.lastAt)}; ${forwarder.size()} pane(s) tracked`,
     );
-    log(`status: log file ${logPath()}; also: orca plugin logs 1am.agent-deck`);
+    log(`status: log file ${logPath()}; also: orca plugin logs local.agent-keypad`);
     // Orca's Logs pane never shows orca.log output, but it shows a returned string (max 200 chars)
     // as the toast description of the palette command. This is the visible result.
     return statusSummary({ state, deck, seen, tracked: forwarder.size(), ago, versionNote });

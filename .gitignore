@@ -10,3 +10,4 @@ tmp
 .claude/
 orca-deck-diagnostics-*.txt
 logs/
+orca-plugin/.orca/

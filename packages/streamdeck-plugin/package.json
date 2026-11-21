@@ -1,6 +1,6 @@
 {
   "name": "@orca-agent-deck/streamdeck-plugin",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -12,6 +12,7 @@
     "@orca-agent-deck/adapter-cli": "workspace:*",
     "@orca-agent-deck/adapter-runtime": "workspace:*",
     "@orca-agent-deck/core": "workspace:*",
+    "@orca-agent-deck/deck-host": "workspace:*",
     "@orca-agent-deck/window-raiser": "workspace:*"
   }
 }

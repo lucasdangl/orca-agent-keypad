@@ -54,6 +54,18 @@ describe('runChecks', () => {
     ).not.toContain('Node');
   });
 
+  it('names the Logi Plugin Service and points an old Node at the plugin setting', () => {
+    const logi: DeckHostInfo = { os: 'mac', host: 'logi', version: '0.1.0', basis: 'device-app' };
+    const row = (nodeVersion: string) =>
+      runChecks({ ...good, host: logi, nodeVersion }).find((c) => c.id === 'deck-host');
+    expect(row('v22.23.4')).toMatchObject({
+      result: 'ok',
+      label: 'Logi Plugin Service',
+      reason: 'Logi Plugin Service 0.1.0, mac (by device-app), Node 22.23.4',
+    });
+    expect(row('v18.19.0')?.hint).toMatch(/plugin settings/);
+  });
+
   it('passes everything on a healthy setup', () => {
     const checks = runChecks(good);
     expect(checks.every((c) => c.result === 'ok')).toBe(true);
@@ -194,7 +206,7 @@ describe('outdated Orca plugin', () => {
     expect(worstCheck(runChecks({ ...good, orcaPlugin: 'outdated' }))).toMatchObject({
       id: 'orca-plugin',
       result: 'warn',
-      caption: 'Update Agent Deck for Orca',
+      caption: 'Update Agent Keypad for Orca',
     });
   });
 });

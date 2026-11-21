@@ -1,4 +1,4 @@
-{"v":2,"name":"a-b-restart","description":"The Stream Deck plugin restarts (new token, new port): A reconnects on its own and keeps forwarding. Revert check: remove the schedule() call at the end of onClose in createBridge.","sides":["a"],"keys":{}}
+{"v":2,"name":"a-b-restart","description":"The keypad plugin restarts (new token, new port): A reconnects on its own and keeps forwarding. Revert check: remove the schedule() call at the end of onClose in createBridge.","sides":["a"],"keys":{}}
 {"at":0,"do":"orca.activate"}
 {"at":0,"do":"bridge.frame","from":"a","frame":{"type":"hello"}}
 {"at":100,"do":"deck.restart"}
