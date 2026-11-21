@@ -800,6 +800,12 @@ export class DeckController {
     this.diag?.(`sorted ${Math.min(auto.length, free.length)} chats onto ${auto.length} auto keys`);
   }
 
+  /** Focuses the pane Orca has in front again (puts the keyboard focus into it), e.g. before dictating into it. */
+  async focusFront(): Promise<PressResult> {
+    const pane = this.snapshot.panes.find((p) => p.paneKey === this.focusedKey);
+    return pane ? this.focus(pane) : 'unmapped';
+  }
+
   /** Empties a slot and keeps it empty: auto-fill never touches a pinned slot without a pane. */
   clear(slot: string): void {
     this.diag?.(`slot ${short(slot)} emptied by the picker`);

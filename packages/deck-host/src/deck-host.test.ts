@@ -322,6 +322,7 @@ describe('deck-host keypad control keys', () => {
       timers: false,
       autofillChatsOnly: true,
       holdResets: true,
+      audioPlaying: async () => true,
     });
     await kp.start();
     kport.setKeys(kport.paneKeys(9));
@@ -341,14 +342,21 @@ describe('deck-host keypad control keys', () => {
     expect(kport.images.get('fake:slot-9')).toContain('data-label="Send"');
   });
 
-  it('Mic starts Orca dictation, Send stops it and sends', async () => {
+  it('Mic pauses music and starts Orca dictation, Send stops it, sends and plays the music again', async () => {
     await kp.panes.refresh();
     kport.key('fake:slot-8', 'down');
     kport.key('fake:slot-8', 'up');
     await until(() => kport.images.get('fake:slot-8')?.includes('data-label="Stop"') === true);
     kport.key('fake:slot-9', 'down');
     kport.key('fake:slot-9', 'up');
-    await until(() => kport.sentKeys.length >= 3, 3000);
-    expect(kport.sentKeys).toEqual(['Cmd+E', 'Cmd+E', 'Return']);
+    await until(() => kport.sentKeys.length >= 5, 3000);
+    // Music playing: paused before the dictation, played again after it; the chat in front has no focus to restore.
+    expect(kport.sentKeys).toEqual([
+      'MediaPlayPause',
+      'Cmd+E',
+      'Cmd+E',
+      'Return',
+      'MediaPlayPause',
+    ]);
   });
 });

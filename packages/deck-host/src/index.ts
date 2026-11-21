@@ -7,3 +7,4 @@ export * from './deck-host.ts';
 export * from './host-watch.ts';
 export * from './mapping-file.ts';
 export * from './fake-port.ts';
+export * from './audio.ts';

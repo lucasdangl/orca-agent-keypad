@@ -92,6 +92,8 @@ export class PaneKeys {
   /** Runs after every refresh (the Stream Deck Property Inspector re-sends its pane list from here). */
   onRefreshed: (() => Promise<void>) | null = null;
 
+  /** Is sound playing (music to pause while dictating)? */
+  private readonly audioPlaying: () => Promise<boolean>;
   /** Holding a key sets it back to auto-fill instead of opening the Orca panel. */
   private readonly holdResets: boolean;
   /** Brings Orca to the front (the same raise a focus press uses); a no-op where the OS does not allow it. */
@@ -102,9 +104,15 @@ export class PaneKeys {
     create: () => Promise<DeckController>,
     panel: PanelPicker = NO_PANEL,
     raise: () => Promise<unknown> = () => Promise.resolve(),
-    o: { holdMs?: number; timers?: boolean; holdResets?: boolean } = {},
+    o: {
+      holdMs?: number;
+      timers?: boolean;
+      holdResets?: boolean;
+      audioPlaying?: () => Promise<boolean>;
+    } = {},
   ) {
     this.holdResets = o.holdResets === true;
+    this.audioPlaying = o.audioPlaying ?? (() => Promise.resolve(false));
     this.port = port;
     this.create = create;
     this.panel = panel;
@@ -208,9 +216,13 @@ export class PaneKeys {
       // Sent on key down, like a keyboard. Never logs the option's text.
       const { presses, other } = answerPresses(spec.action, this.other);
       const changed = other !== this.other;
+      const was = this.other;
       this.other = other;
       this.port.log('info', `answer pad: ${spec.action} -> ${presses.join(' ')}`);
+      // Dictation starts: pause music first; it ends: resume what we paused.
+      if (was !== 'dictating' && other === 'dictating') this.pauseMedia();
       this.send(presses);
+      if (was === 'dictating' && other !== 'dictating') this.resumeMedia();
       if (changed) void this.repaint();
       // The answer changes the agent's state: read Orca again soon so the pad goes away.
       setTimeout(() => void this.refresh(), 400);
@@ -237,12 +249,50 @@ export class PaneKeys {
       await this.refresh();
       return;
     }
+    const was = this.mic;
+    this.mic = kind === 'mic' ? !was : false;
+    void this.repaint();
+    if (kind === 'mic' && !was) {
+      // Orca's Cmd+E only finds the chat's input when the keyboard focus is in that chat: focus it first.
+      this.port.log('info', 'control: mic -> focus chat, Cmd+E');
+      this.pauseMedia();
+      // In the key queue, so a Send pressed meanwhile comes after the Cmd+E.
+      this.sending = this.sending.then(async () => {
+        const r = await (await this.controller()).focusFront().catch(() => 'failed');
+        if (r === 'focused') await new Promise((res) => setTimeout(res, 250));
+        await this.port.sendKey?.('Cmd+E').catch(() => {});
+      });
+      return;
+    }
     const presses: (AnswerKeyCode | number)[] =
-      kind === 'mic' ? ['Cmd+E'] : this.mic ? ['Cmd+E', 700, 'Return'] : ['Return'];
-    this.mic = kind === 'mic' ? !this.mic : false;
+      kind === 'mic' ? ['Cmd+E'] : was ? ['Cmd+E', 700, 'Return'] : ['Return'];
     this.port.log('info', `control: ${kind} -> ${presses.join(' ')}`);
     this.send(presses);
-    void this.repaint();
+    if (was) this.resumeMedia();
+  }
+
+  /** Music we paused for a dictation (resumed when it ends). */
+  private pausedMedia = false;
+
+  /** Before a dictation: if sound is playing, press Play/Pause (in the key queue, so it lands before Cmd+E). */
+  private pauseMedia(): void {
+    this.sending = this.sending.then(async () => {
+      if (this.pausedMedia || !(await this.audioPlaying())) return;
+      this.pausedMedia = true;
+      this.port.log('info', 'media paused for dictation');
+      await this.port.sendKey?.('MediaPlayPause').catch(() => {});
+    });
+  }
+
+  /** After a dictation: play again what `pauseMedia` paused, nothing else. */
+  private resumeMedia(): void {
+    this.sending = this.sending.then(async () => {
+      if (!this.pausedMedia) return;
+      this.pausedMedia = false;
+      await new Promise((r) => setTimeout(r, 300));
+      this.port.log('info', 'media resumed after dictation');
+      await this.port.sendKey?.('MediaPlayPause').catch(() => {});
+    });
   }
 
   /** Key presses to the app in front, one after another (numbers are pauses in ms). */
@@ -435,7 +485,10 @@ export class PaneKeys {
           if (!!pad !== !!this.pad)
             this.port.log('info', pad ? 'answer pad up' : 'answer pad down');
           // A new question (or none) starts without a free-text answer.
-          if (!pad || pad.paneKey !== this.pad?.paneKey) this.other = 'off';
+          if (!pad || pad.paneKey !== this.pad?.paneKey) {
+            if (this.other === 'dictating') this.resumeMedia();
+            this.other = 'off';
+          }
           if (pad) this.mic = false;
           this.pad = pad;
           await this.repaint();

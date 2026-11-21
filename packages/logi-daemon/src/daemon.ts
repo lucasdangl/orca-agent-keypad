@@ -1,5 +1,5 @@
 import type { Readable, Writable } from 'node:stream';
-import { DeckHost, type DeckHostOptions } from '@orca-agent-deck/deck-host';
+import { DeckHost, audioPlaying, type DeckHostOptions } from '@orca-agent-deck/deck-host';
 import { LogiPort } from './logi-port.ts';
 
 export const DAEMON_VERSION = '0.4.0';
@@ -25,7 +25,12 @@ export async function runDaemon(o: DaemonOptions): Promise<{ why: string }> {
     ...(o.logLine ? { logLine: o.logLine } : {}),
   });
   // The keypad: auto-fill shows chats only, and holding a Pane key sets it back to auto-fill.
-  const host = new DeckHost(port, { autofillChatsOnly: true, holdResets: true, ...o.host });
+  const host = new DeckHost(port, {
+    autofillChatsOnly: true,
+    holdResets: true,
+    audioPlaying,
+    ...o.host,
+  });
   let gone: (why: string) => void = () => {};
   const parentGone = new Promise<string>((r) => (gone = r));
   // The bridge and the parent watch start with the first hello: before it the plugin has not said who it is.

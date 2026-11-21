@@ -103,7 +103,7 @@ Ist die Frage beantwortet, zeigen die Tasten wieder die Chats. Die Belegung rich
 | Taste | Funktion |
 |---|---|
 | 7 **Sort** | Sortiert die automatisch belegten Tasten neu: die Chats in der Reihenfolge, in der Orca sie listet, Lücken werden geschlossen. Von Hand belegte Tasten bleiben. |
-| 8 **Mic** | Startet Orcas Diktat im Eingabefeld des Chats, der vorne ist (Cmd+E). Die Taste wird zu einem roten **Stop**; ein zweiter Druck beendet das Diktat. |
+| 8 **Mic** | Holt den Chat, der vorne ist, in den Fokus und startet Orcas Diktat in seinem Eingabefeld (Cmd+E). Die Taste wird zu einem roten **Stop**; ein zweiter Druck beendet das Diktat. Läuft Musik, wird sie für das Diktat pausiert und danach fortgesetzt. |
 | 9 **Send** | Enter, also Abschicken. Läuft das Diktat noch, beendet Send es vorher. |
 
 **Zurücksetzen:** Eine Pane-Taste etwa 1 s halten setzt sie zurück auf Automatisch. Sie zeigt kurz „Auto“ und nimmt dann den nächsten freien Chat. Das gilt auch für Tasten, die du von Hand belegt oder mit Unmap geleert hast.

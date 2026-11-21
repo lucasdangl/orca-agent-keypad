@@ -169,6 +169,7 @@ namespace Loupedeck.OrcaKeypadPlugin
                 "ArrowUp" => VirtualKeyCode.ArrowUp,
                 "ArrowDown" => VirtualKeyCode.ArrowDown,
                 "Cmd+E" => VirtualKeyCode.KeyE,
+                "MediaPlayPause" => VirtualKeyCode.MediaPlayPause,
                 "Return" => VirtualKeyCode.Return,
                 "1" => VirtualKeyCode.Key1,
                 "2" => VirtualKeyCode.Key2,

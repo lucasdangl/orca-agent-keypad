@@ -2,7 +2,16 @@ import { layoutLabel } from './render.ts';
 
 /** A key press the answer pad sends to the app in front (Orca). `Cmd+E` is Orca's default dictation shortcut. */
 export type AnswerKeyCode =
-  'Escape' | 'ArrowUp' | 'ArrowDown' | 'Return' | '1' | '2' | '3' | '4' | 'Cmd+E';
+  | 'Escape'
+  | 'ArrowUp'
+  | 'ArrowDown'
+  | 'Return'
+  | '1'
+  | '2'
+  | '3'
+  | '4'
+  | 'Cmd+E'
+  | 'MediaPlayPause';
 
 /**
  * What a pad key does: one key press, or `Other` (into the free-text field and dictate) / `Send` (submit), whose key

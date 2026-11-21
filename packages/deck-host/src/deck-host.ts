@@ -54,6 +54,8 @@ export interface DeckHostOptions {
   autofillChatsOnly?: boolean;
   /** Holding a Pane key sets it back to auto-fill instead of opening the Orca panel (the Logi keypad). */
   holdResets?: boolean;
+  /** Is sound playing? Dictation pauses it and plays it again after (default: never). */
+  audioPlaying?: () => Promise<boolean>;
   /** Polling and repaint timers (default on; tests drive refreshes themselves). */
   timers?: boolean;
 }
@@ -130,6 +132,7 @@ export class DeckHost {
         ...(o.holdMs !== undefined ? { holdMs: o.holdMs } : {}),
         ...timers,
         holdResets: o.holdResets === true,
+        ...(o.audioPlaying ? { audioPlaying: o.audioPlaying } : {}),
       },
     );
     this.status = new InfoKeys(
