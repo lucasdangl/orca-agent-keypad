@@ -352,7 +352,7 @@ describe('deck-host keypad control keys', () => {
     await until(() => kport.images.get('fake:slot-8')?.includes('data-label="Stop"') === true);
     kport.key('fake:slot-9', 'down');
     kport.key('fake:slot-9', 'up');
-    await until(() => kport.sentKeys.length >= 5, 3000);
+    await until(() => kport.sentKeys.length >= 5, 5000);
     // Music playing: paused before the dictation, played again after it; the chat in front has no focus to restore.
     expect(kport.sentKeys).toEqual([
       '(music paused)',

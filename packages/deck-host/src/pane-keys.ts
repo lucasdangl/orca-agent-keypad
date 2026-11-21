@@ -55,6 +55,9 @@ export interface DeckStateView {
 }
 
 /** All Pane keys of the deck. Slot id = `KeyBinding.slotId`; state comes from the shared DeckController. */
+/** Pause before music paused for a dictation plays again. */
+const RESUME_MUSIC_MS = 2000;
+
 export class PaneKeys {
   /** Pane keys on the device now, by slot id. */
   private readonly keys = new Map<string, KeyBinding>();
@@ -293,7 +296,8 @@ export class PaneKeys {
       const play = this.pausedMedia;
       if (!play) return;
       this.pausedMedia = null;
-      await new Promise((r) => setTimeout(r, 300));
+      // Not right away: the message is still going out and Orca's dictation sound is still playing.
+      await new Promise((r) => setTimeout(r, RESUME_MUSIC_MS));
       this.port.log('info', 'media resumed after dictation');
       await play().catch(() => {});
     });

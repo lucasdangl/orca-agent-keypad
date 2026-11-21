@@ -520,37 +520,56 @@ export class CliAdapter implements OrcaAdapter {
    * on screen or computer use is unavailable.
    */
   async focusChatInput(): Promise<boolean> {
-    for (const app of ORCA_APPS) {
-      try {
-        const state = JSON.parse(
+    const notes: string[] = [];
+    // A chat just revealed may still be rendering: look twice.
+    for (let attempt = 0; attempt < 2; attempt++) {
+      if (attempt > 0) await new Promise((r) => setTimeout(r, 400));
+      for (const app of ORCA_APPS) {
+        let tree: string;
+        try {
+          const state = JSON.parse(
+            await this.exec([
+              'computer',
+              'get-app-state',
+              '--app',
+              app,
+              '--query',
+              CHAT_INPUT_QUERY,
+              '--no-screenshot',
+              '--json',
+            ]),
+          ) as { result?: { snapshot?: { treeText?: string } } };
+          tree = state.result?.snapshot?.treeText ?? '';
+        } catch (e) {
+          // Not this app id (a dev build) or no computer use: try the next one.
+          notes.push(`${app}: ${(e as Error).message.replace(/\s+/g, ' ').slice(0, 200)}`);
+          continue;
+        }
+        const index = chatInputIndex(tree);
+        if (index === null) {
+          const focused = /The focused UI element is (.*)/.exec(tree)?.[1] ?? 'none';
+          notes.push(`${app}: no chat input, focus ${focused.slice(0, 80)}`);
+          break;
+        }
+        try {
           await this.exec([
             'computer',
-            'get-app-state',
+            'click',
             '--app',
             app,
-            '--query',
-            CHAT_INPUT_QUERY,
+            '--element-index',
+            String(index),
             '--no-screenshot',
             '--json',
-          ]),
-        ) as { result?: { snapshot?: { treeText?: string } } };
-        const index = chatInputIndex(state.result?.snapshot?.treeText ?? '');
-        if (index === null) return false;
-        await this.exec([
-          'computer',
-          'click',
-          '--app',
-          app,
-          '--element-index',
-          String(index),
-          '--no-screenshot',
-          '--json',
-        ]);
-        return true;
-      } catch {
-        // Not this app id (a dev build) or no computer use: try the next one.
+          ]);
+          return true;
+        } catch (e) {
+          notes.push(`click: ${(e as Error).message.replace(/\s+/g, ' ').slice(0, 200)}`);
+          break;
+        }
       }
     }
+    this.diag?.(`chat input not focused: ${notes.join(' | ')}`);
     return false;
   }
 
