@@ -98,7 +98,7 @@ Pane-Tasten füllen sich von selbst: Jede freie Taste bekommt einen Agent-Chat, 
 
 Ist die Frage beantwortet, zeigen die Tasten wieder die Chats. Die Belegung richtet sich nach der Position der Taste (Slot 1 = oben links).
 
-**Leere Tasten:** Pane-Tasten ohne Chat spielen eine kleine Animation (Code, Terminal, Git-Graph …). Die Tasten 7, 8 und 9 werden zu Steuertasten, solange dort kein Chat liegt:
+**Leere Tasten:** Über das ganze Keypad fällt ein Matrix-Regen aus Code-Zeichen; jede Pane-Taste ohne Chat zeigt ihren Ausschnitt davon. Die Tasten 7, 8 und 9 werden zu Steuertasten, solange dort kein Chat liegt:
 
 | Taste | Funktion |
 |---|---|

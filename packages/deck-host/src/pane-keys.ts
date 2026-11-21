@@ -258,6 +258,15 @@ export class PaneKeys {
     });
   }
 
+  /** An empty key's tile of the rain over the deck, from its place on the device (else its key number on a 3 x 3). */
+  private idleTile(id: string): string {
+    const k = this.keys.get(id);
+    const n = (this.indexes.get(id) ?? 1) - 1;
+    const col = k?.coordinates?.column ?? n % 3;
+    const row = k?.coordinates?.row ?? Math.floor(n / 3);
+    return renderIdleKey(col, row, this.tick, this.numbers.get(id));
+  }
+
   /** Our Pane keys by key number (keys without a number last): the order auto-fill and Sort fill them in. */
   private orderedSlots(): string[] {
     const n = (id: string) => this.indexes.get(id) ?? Number.MAX_SAFE_INTEGER;
@@ -459,7 +468,7 @@ export class PaneKeys {
           : control
             ? renderControlKey(control, { dictating: this.mic })
             : idle
-              ? renderIdleKey((this.indexes.get(id) ?? 1) - 1, this.tick, this.numbers.get(id))
+              ? this.idleTile(id)
               : renderKey(
                   { ...shown, keyNumber: this.numbers.get(id) },
                   { size: 144, spin: this.spin },
