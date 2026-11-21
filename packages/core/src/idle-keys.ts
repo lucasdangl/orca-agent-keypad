@@ -64,6 +64,9 @@ export function renderIdleKey(
     keyMarkers('unmapped', '', '', undefined, keyNumber) +
     `font-family="${FONT_MONO}" font-weight="600">` +
     `<rect width="144" height="144" fill="#0b0e0d"/>` +
+    // The Logi service draws an image of one single colour as plain white (docs/logi-findings.md §11); a key without a
+    // glyph this frame keeps two nearly black units in a corner so it never is one.
+    `<rect width="2" height="2" fill="#0c0f0e"/>` +
     glyphs +
     `</svg>`
   );

@@ -224,6 +224,14 @@ Gesehen am 2026-11-20 mit Options+ und Plugin Service 6.4.2 **[Test]**.
 - Wer nach einem Bug sucht, sollte zuerst prüfen, ob im Log `GetCommandImage`-Aufrufe ankommen.
 - Bei einem harten Kill des Service bleibt `bridge.json` liegen. Der Daemon beendet sich nach höchstens 0,5 s, und der nächste Daemon überschreibt die Datei.
 
+## 11. Einfarbige Bilder werden weiß
+
+Gesehen am 2026-11-21 mit Plugin Service 6.4.2 **[Test]**: `BitmapImage.TryCreateFromSvg` aus der `PluginApi.dll` des Service, gerastert auf 116 px.
+
+- Ein Bild aus nur einer Farbe kommt komplett weiß heraus, egal welche Farbe (getestet: fast Schwarz, Blau, ein Rechteck, ein Pfad, Text in der Hintergrundfarbe).
+- Schon 2 x 2 Einheiten in einem minimal anderen Ton reichen, dann stimmt das Bild.
+- Auf dem Keypad sah das aus wie ein kurzes weißes Flackern in der Matrix, wenn auf einer Taste gerade kein Zeichen lag. Abhilfe: Jede Taste zeichnet ein kleines, fast schwarzes Quadrat in die Ecke.
+
 ## Folge für Phase 2
 
 - Device-Protokoll: `image` trägt `svg: string` (UTF-8, wie `renderKey` es liefert) statt `png: base64`.
