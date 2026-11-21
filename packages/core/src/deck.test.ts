@@ -63,6 +63,31 @@ it('with autofill on chats only, terminals stay off the keys and lose earlier au
   expect(store.get('s2')?.pane?.paneKey).toBe('a:1');
 });
 
+it("resort puts the free chats onto the auto keys in Orca's order, pinned keys stay", async () => {
+  const c = (n: string) => `structured-agent-session-${n}:leaf`;
+  const snap: Snapshot = {
+    panes: [
+      pane(c('one'), { kind: 'chat' }),
+      pane(c('two'), { kind: 'chat' }),
+      pane(c('three'), { kind: 'chat' }),
+    ],
+    statuses: [],
+    omittedHostIds: [],
+  };
+  const store = new MappingStore();
+  const d = new DeckController(fake(snap).a, store, undefined, { autofillChatsOnly: true });
+  await d.refresh(['s1', 's2', 's3', 's4']);
+  // Scramble: s1 pinned to three, s3 auto on one, s2 and s4 empty.
+  d.configure('s1', { paneKey: c('three') });
+  store.set('s2', { mode: 'auto' });
+  store.set('s3', { mode: 'auto', pane: store.get('s2')?.pane ?? undefined });
+  d.resort(['s1', 's2', 's3', 's4']);
+  expect(store.get('s1')?.pane?.paneKey).toBe(c('three'));
+  expect(store.get('s2')?.pane?.paneKey).toBe(c('one'));
+  expect(store.get('s3')?.pane?.paneKey).toBe(c('two'));
+  expect(store.get('s4')?.pane).toBeUndefined();
+});
+
 it('with autofill off, keys show pinned panes only and lose earlier auto-filled ones', async () => {
   const snap: Snapshot = { panes: [pane('a:1'), pane('b:1')], statuses: [], omittedHostIds: [] };
   const store = new MappingStore();

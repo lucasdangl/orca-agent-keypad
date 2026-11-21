@@ -98,6 +98,14 @@ Pane-Tasten füllen sich von selbst: Jede freie Taste bekommt einen Agent-Chat, 
 
 Ist die Frage beantwortet, zeigen die Tasten wieder die Chats. Die Belegung richtet sich nach der Position der Taste (Slot 1 = oben links).
 
+**Leere Tasten:** Pane-Tasten ohne Chat spielen eine kleine Animation (Code, Terminal, Git-Graph …). Die Tasten 7, 8 und 9 werden zu Steuertasten, solange dort kein Chat liegt:
+
+| Taste | Funktion |
+|---|---|
+| 7 **Sort** | Sortiert die automatisch belegten Tasten neu: die Chats in der Reihenfolge, in der Orca sie listet, Lücken werden geschlossen. Von Hand belegte Tasten bleiben. |
+| 8 **Mic** | Startet Orcas Diktat im Eingabefeld des Chats, der vorne ist (Cmd+E). Die Taste wird zu einem roten **Stop**; ein zweiter Druck beendet das Diktat. |
+| 9 **Send** | Enter, also Abschicken. Läuft das Diktat noch, beendet Send es vorher. |
+
 **Zurücksetzen:** Eine Pane-Taste etwa 1 s halten setzt sie zurück auf Automatisch. Sie zeigt kurz „Auto“ und nimmt dann den nächsten freien Chat. Das gilt auch für Tasten, die du von Hand belegt oder mit Unmap geleert hast.
 
 Von Hand belegen geht so:

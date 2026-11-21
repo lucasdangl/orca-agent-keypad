@@ -305,3 +305,50 @@ describe('deck-host answer pad', () => {
     expect(port.images.get('fake:slot-1')).not.toContain('data-state="answer"');
   });
 });
+
+// The keypad's empty Pane keys: control keys 7 Sort / 8 Mic / 9 Send while free, animations on the others.
+describe('deck-host keypad control keys', () => {
+  let kp: DeckHost;
+  let kport: FakePort;
+  beforeEach(async () => {
+    kport = new FakePort();
+    kp = new DeckHost(kport, {
+      runtimeMetaPath: join(dir, 'orca-runtime.json'),
+      environmentsFile: join(dir, 'orca-environments.json'),
+      mappingsPath: join(dir, 'kp-mappings.json'),
+      bridge: { discoveryPath: join(dir, 'kp-bridge.json'), ports: [0] },
+      exec,
+      raise,
+      timers: false,
+      autofillChatsOnly: true,
+      holdResets: true,
+    });
+    await kp.start();
+    kport.setKeys(kport.paneKeys(9));
+    await until(() => kport.images.size === 9);
+  });
+  afterEach(async () => {
+    await kp.stop();
+  });
+
+  it('shows Sort / Mic / Send on the free keys 7-9 and an animation on the other empty keys', async () => {
+    await kp.panes.refresh();
+    expect(kport.images.get('fake:slot-1')).toContain('Fix the login'); // the one chat
+    expect(kport.shown('fake:slot-2')?.state).toBe('unmapped'); // empty: an animation
+    expect(kport.images.get('fake:slot-2')).toContain('<text');
+    expect(kport.images.get('fake:slot-7')).toContain('data-label="Sort"');
+    expect(kport.images.get('fake:slot-8')).toContain('data-label="Mic"');
+    expect(kport.images.get('fake:slot-9')).toContain('data-label="Send"');
+  });
+
+  it('Mic starts Orca dictation, Send stops it and sends', async () => {
+    await kp.panes.refresh();
+    kport.key('fake:slot-8', 'down');
+    kport.key('fake:slot-8', 'up');
+    await until(() => kport.images.get('fake:slot-8')?.includes('data-label="Stop"') === true);
+    kport.key('fake:slot-9', 'down');
+    kport.key('fake:slot-9', 'up');
+    await until(() => kport.sentKeys.length >= 3, 3000);
+    expect(kport.sentKeys).toEqual(['Cmd+E', 'Cmd+E', 'Return']);
+  });
+});

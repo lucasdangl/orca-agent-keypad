@@ -772,6 +772,34 @@ export class DeckController {
     };
   }
 
+  /**
+   * Sort (the keypad's key 7): the auto-filled slots, in the order given (key number), take the free agent chats in
+   * the order Orca lists them; pinned slots keep their pane. Slots left over are emptied.
+   */
+  resort(slots: string[]): void {
+    const auto = slots.filter((s) => this.store.get(s)?.mode !== 'pinned');
+    const pinned = new Set(
+      slots.flatMap((s) => {
+        const c = this.store.get(s);
+        return c?.mode === 'pinned' && c.pane ? [c.pane.paneKey] : [];
+      }),
+    );
+    const free = this.snapshot.panes.filter(
+      (p) =>
+        (this.autofillChatsOnly ? isChatPaneKey(p.paneKey) : !!p.agentType) &&
+        !p.orphaned &&
+        !pinned.has(p.paneKey) &&
+        !this.released.has(p.paneKey),
+    );
+    auto.forEach((s, i) => {
+      const p = free[i];
+      const cur = this.store.get(s);
+      if (p) this.store.set(s, { ...cur, mode: 'auto', pane: bindingOf(p) });
+      else if (cur?.pane) this.store.remove(s);
+    });
+    this.diag?.(`sorted ${Math.min(auto.length, free.length)} chats onto ${auto.length} auto keys`);
+  }
+
   /** Empties a slot and keeps it empty: auto-fill never touches a pinned slot without a pane. */
   clear(slot: string): void {
     this.diag?.(`slot ${short(slot)} emptied by the picker`);

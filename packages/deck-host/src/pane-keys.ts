@@ -10,7 +10,12 @@ import {
   answerPresses,
   ANSWER_LAYOUT,
   type OtherState,
+  renderIdleKey,
+  renderControlKey,
+  CONTROL_LAYOUT,
+  type ControlKey,
   type AnswerPad,
+  type AnswerKeyCode,
   type DeckController,
   type LayoutCell,
   type SlotView,
@@ -80,6 +85,8 @@ export class PaneKeys {
   private readonly padPressed = new Set<string>();
   /** The free-text answer of the question on the pad (Other key): off, dictating, typing. */
   private other: OtherState = 'off';
+  /** The Mic control key started Orca's dictation (key 8); Send stops it before sending. */
+  private mic = false;
   /** Key presses of pad keys run one after another, in press order. */
   private sending: Promise<void> = Promise.resolve();
   /** Runs after every refresh (the Stream Deck Property Inspector re-sends its pane list from here). */
@@ -125,6 +132,10 @@ export class PaneKeys {
   /** Is anything on the deck changing with time: a spinner, a hint about to expire? */
   private animating(): boolean {
     if (this.hints.size > 0) return true;
+    // The keypad's empty keys play an animation.
+    if (this.holdResets)
+      for (const id of this.keys.keys())
+        if (this.views.get(id)?.state === 'unmapped' && !this.controlKey(id)) return true;
     for (const id of this.keys.keys()) if (this.views.get(id)?.state === 'working') return true;
     return false;
   }
@@ -184,6 +195,12 @@ export class PaneKeys {
   }
 
   keyDown(slotId: string): void {
+    const control = this.controlKey(slotId);
+    if (control) {
+      this.padPressed.add(slotId);
+      void this.runControl(control);
+      return;
+    }
     const spec = this.padKey(slotId);
     if (spec) {
       this.padPressed.add(slotId);
@@ -193,23 +210,58 @@ export class PaneKeys {
       const changed = other !== this.other;
       this.other = other;
       this.port.log('info', `answer pad: ${spec.action} -> ${presses.join(' ')}`);
-      this.sending = this.sending.then(async () => {
-        for (const p of presses) {
-          if (typeof p === 'number') await new Promise((r) => setTimeout(r, p));
-          else
-            await this.port
-              .sendKey?.(p)
-              .catch((e: unknown) =>
-                this.port.log('warn', `answer pad: ${p} not sent: ${String(e)}`),
-              );
-        }
-      });
+      this.send(presses);
       if (changed) void this.repaint();
       // The answer changes the agent's state: read Orca again soon so the pad goes away.
       setTimeout(() => void this.refresh(), 400);
       return;
     }
     this.gestures.keyDown(slotId);
+  }
+
+  /** The control key (7 Sort, 8 Mic, 9 Send) on this slot: on the keypad, outside the answer pad, while it has no chat. */
+  private controlKey(slotId: string): ControlKey | undefined {
+    if (!this.holdResets || this.pad) return undefined;
+    const n = this.indexes.get(slotId);
+    const kind = n === undefined ? undefined : CONTROL_LAYOUT[n];
+    if (!kind || (kind !== 'sort' && !this.port.sendKey)) return undefined;
+    const v = this.views.get(slotId);
+    return !v || v.state === 'unmapped' ? kind : undefined;
+  }
+
+  /** A control key pressed: sort the auto keys, or Orca's dictation (Cmd+E focuses the chat's input) and send. */
+  private async runControl(kind: ControlKey): Promise<void> {
+    if (kind === 'sort') {
+      (await this.controller()).resort(this.orderedSlots());
+      this.port.log('info', 'control: sort');
+      await this.refresh();
+      return;
+    }
+    const presses: (AnswerKeyCode | number)[] =
+      kind === 'mic' ? ['Cmd+E'] : this.mic ? ['Cmd+E', 700, 'Return'] : ['Return'];
+    this.mic = kind === 'mic' ? !this.mic : false;
+    this.port.log('info', `control: ${kind} -> ${presses.join(' ')}`);
+    this.send(presses);
+    void this.repaint();
+  }
+
+  /** Key presses to the app in front, one after another (numbers are pauses in ms). */
+  private send(presses: (AnswerKeyCode | number)[]): void {
+    this.sending = this.sending.then(async () => {
+      for (const p of presses) {
+        if (typeof p === 'number') await new Promise((r) => setTimeout(r, p));
+        else
+          await this.port
+            .sendKey?.(p)
+            .catch((e: unknown) => this.port.log('warn', `key ${p} not sent: ${String(e)}`));
+      }
+    });
+  }
+
+  /** Our Pane keys by key number (keys without a number last): the order auto-fill and Sort fill them in. */
+  private orderedSlots(): string[] {
+    const n = (id: string) => this.indexes.get(id) ?? Number.MAX_SAFE_INTEGER;
+    return [...this.keys.keys()].sort((a, b) => n(a) - n(b));
   }
 
   /** The answer pad key on this slot, while the pad is up. */
@@ -368,13 +420,14 @@ export class PaneKeys {
       try {
         do {
           this.again = false;
-          const views = await (await this.controller()).refresh([...this.keys.keys()]);
+          const views = await (await this.controller()).refresh(this.orderedSlots());
           for (const [id, v] of views) this.views.set(id, v);
           const pad = this.port.sendKey && this.ctl ? this.ctl.answerPad() : null;
           if (!!pad !== !!this.pad)
             this.port.log('info', pad ? 'answer pad up' : 'answer pad down');
           // A new question (or none) starts without a free-text answer.
           if (!pad || pad.paneKey !== this.pad?.paneKey) this.other = 'off';
+          if (pad) this.mic = false;
           this.pad = pad;
           await this.repaint();
           if (this.onRefreshed && this.ctl) await this.onRefreshed();
@@ -399,12 +452,18 @@ export class PaneKeys {
         if (hint && hint.until <= now) this.hints.delete(id);
         const shown = hint && hint.until > now && hint.text ? { ...v, label: hint.text } : v;
         const spec = this.padKey(id);
+        const control = spec ? undefined : this.controlKey(id);
+        const idle = !spec && !control && this.holdResets && v.state === 'unmapped' && shown === v;
         const svg = spec
           ? renderAnswerKey(spec, this.pad?.options ?? [], { other: this.other })
-          : renderKey(
-              { ...shown, keyNumber: this.numbers.get(id) },
-              { size: 144, spin: this.spin },
-            );
+          : control
+            ? renderControlKey(control, { dictating: this.mic })
+            : idle
+              ? renderIdleKey((this.indexes.get(id) ?? 1) - 1, this.tick, this.numbers.get(id))
+              : renderKey(
+                  { ...shown, keyNumber: this.numbers.get(id) },
+                  { size: 144, spin: this.spin },
+                );
         if (this.sent.get(id) === svg) return;
         this.sent.set(id, svg);
         await this.port.setImage(id, svg);

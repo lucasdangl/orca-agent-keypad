@@ -247,7 +247,7 @@ const RIGHT = 144 - MX;
  * What a key says, as attributes of the root element: the replay suite reads the semantic state back from the image
  * through `decodeKey` instead of a second renderer. For an info key: state = tone, label = caption, line2 = value.
  */
-const markers = (
+export const keyMarkers = (
   state: string,
   label: string,
   line2: string,
@@ -342,7 +342,7 @@ export function renderKey(m: KeyModel, o: RenderOptions = {}): string {
   const iconX = glyph || orca ? MX + 32 : MX;
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 144 144" ` +
-    markers(m.state, m.label, m.line2, kind, m.keyNumber) +
+    keyMarkers(m.state, m.label, m.line2, kind, m.keyNumber) +
     `style="--bg:${pal.bg}" font-family="${FONT_STACK}" font-weight="400" color="${pal.fg}" fill="${pal.fg}">` +
     `<rect width="144" height="144" fill="${pal.bg}"/>` +
     badge +
@@ -401,7 +401,7 @@ export function renderInfoKey(
   const size = o.size ?? 144;
   const head =
     `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 144 144" ` +
-    markers(m.tone, m.caption, m.value);
+    keyMarkers(m.tone, m.caption, m.value);
   if (m.glyph && !o.highContrast)
     return head + glyphKey(m, m.glyph, o.blinkOff === true) + `</svg>`;
   const on = (o.highContrast && HIGH_CONTRAST[m.tone]) || PALETTE[m.tone];
