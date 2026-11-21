@@ -13,16 +13,20 @@ it.runIf(process.platform === 'darwin')(
       }
       return args.includes('pause') ? 'paused\n' : '';
     };
-    const play = await pauseMusic(exec)();
+    const play = await pauseMusic(exec, 1)();
     expect(calls.some((c) => c.startsWith('osascript') && c.includes('"Music"'))).toBe(false);
     expect(calls.filter((c) => c.startsWith('osascript'))).toHaveLength(1);
     expect(play).not.toBeNull();
     await play!();
-    expect(calls.at(-1)).toBe('osascript tell application "Spotify" to play');
+    // Played, then checked: the mock never reports "playing", so it plays again after each check.
+    const after = calls.slice(calls.findIndex((c) => c.endsWith('to play')));
+    expect(after[0]).toBe('osascript tell application "Spotify" to play');
+    expect(after.filter((c) => c.endsWith('to play'))).toHaveLength(5);
+    expect(after.every((c) => c.includes('"Spotify"'))).toBe(true);
   },
 );
 
 it.runIf(process.platform === 'darwin')('pauses nothing when no player plays', async () => {
   const exec = async (file: string) => (file.endsWith('pgrep') ? '' : '\n');
-  expect(await pauseMusic(exec)()).toBeNull();
+  expect(await pauseMusic(exec, 1)()).toBeNull();
 });

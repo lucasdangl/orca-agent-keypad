@@ -236,8 +236,8 @@ Gesehen am 2026-11-21 mit Plugin Service 6.4.2 **[Test]**: `BitmapImage.TryCreat
 
 Gesehen am 2026-11-21 mit Orca und Plugin Service 6.4.2 **[Test]**.
 
-- **Fokus:** `terminal.reveal` schaltet nur den Tab um. Der Tastaturfokus bleibt, wo er war, z. B. im Feld „Search templates“. Orcas Diktat (Cmd+E) springt aber nur ins Eingabefeld, wenn der Fokus im Chat liegt oder auf dem Body und genau ein Chat sichtbar ist. Abhilfe: Der Daemon klickt über `orca computer` (Accessibility-Baum) ins Feld „Ask anything, …“ des sichtbaren Chats und schickt erst danach Cmd+E. `get-app-state --query` dauert rund 0,2 s.
-- **Musik:** `VirtualKeyCode.MediaPlayPause` über `SendKeyboardShortcut` kam bei Spotify nicht an. Abhilfe: AppleScript (`player state`, `pause`, `play`) für Spotify und Apple Music, und nur wenn der Prozess läuft. Beim ersten Mal fragt macOS, ob der Logi-Dienst den Player steuern darf. Musik im Browser wird nicht pausiert.
+- **Fokus:** `terminal.reveal` schaltet nur den Tab um. Der Tastaturfokus bleibt, wo er war, z. B. im Feld „Search templates“. Orcas Diktat (Cmd+E) springt aber nur ins Eingabefeld, wenn der Fokus im Chat liegt oder auf dem Body und genau ein Chat sichtbar ist. Abhilfe: Der Daemon klickt über `orca computer` (Accessibility-Baum) ins Feld „Ask anything, …“ des sichtbaren Chats und schickt erst danach Cmd+E. `get-app-state --query` dauert rund 0,2 s. Ein Snapshot liest höchstens 1200 Elemente. Bei einem langen Chat kann das Eingabefeld abgeschnitten sein, deshalb liest der Daemon dann die abgeschnittenen Teile einzeln (`--element-index`).
+- **Musik:** `VirtualKeyCode.MediaPlayPause` über `SendKeyboardShortcut` kam bei Spotify nicht an. Abhilfe: AppleScript (`player state`, `pause`, `play`) für Spotify und Apple Music, und nur wenn der Prozess läuft. Beim ersten Mal fragt macOS, ob der Logi-Dienst den Player steuern darf. Musik im Browser wird nicht pausiert. Nach dem Play prüft der Daemon 4 s lang jede Sekunde den `player state` und spielt erneut, falls die Musik wieder steht. Verdacht: Ein Bluetooth-Headset wechselt nach dem Mikro zurück ins Musikprofil und pausiert den Player dabei.
 
 ## Folge für Phase 2
 

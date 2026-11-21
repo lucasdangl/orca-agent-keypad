@@ -61,6 +61,28 @@ const ORCA_APPS = ['com.stablyai.orca', 'Orca'];
  */
 const CHAT_INPUT_QUERY = '@';
 
+/**
+ * Elements whose children an `orca computer get-app-state` tree cut off at its size limit: each
+ * `... N more not shown (snapshot limit)` line stands for children of the nearest line above it with less indent.
+ */
+export function cutOffParents(tree: string): number[] {
+  const lines = tree.split('\n');
+  const parents: number[] = [];
+  lines.forEach((line, i) => {
+    if (!/more not shown \(snapshot limit\)/.test(line)) return;
+    const indent = /^\t*/.exec(line)?.[0].length ?? 0;
+    for (let j = i - 1; j >= 0; j--) {
+      const m = /^(\t*)(\d+) /.exec(lines[j] ?? '');
+      if (m && (m[1] ?? '').length < indent) {
+        const n = Number(m[2]);
+        if (!parents.includes(n)) parents.push(n);
+        return;
+      }
+    }
+  });
+  return parents;
+}
+
 /** Element index of the first chat input in an `orca computer get-app-state` tree, null when none is shown. */
 export function chatInputIndex(tree: string): number | null {
   for (const line of tree.split('\n')) {
@@ -525,30 +547,16 @@ export class CliAdapter implements OrcaAdapter {
     for (let attempt = 0; attempt < 2; attempt++) {
       if (attempt > 0) await new Promise((r) => setTimeout(r, 400));
       for (const app of ORCA_APPS) {
-        let tree: string;
+        let found: { index: number | null; note: string };
         try {
-          const state = JSON.parse(
-            await this.exec([
-              'computer',
-              'get-app-state',
-              '--app',
-              app,
-              '--query',
-              CHAT_INPUT_QUERY,
-              '--no-screenshot',
-              '--json',
-            ]),
-          ) as { result?: { snapshot?: { treeText?: string } } };
-          tree = state.result?.snapshot?.treeText ?? '';
+          found = await this.findChatInput(app);
         } catch (e) {
           // Not this app id (a dev build) or no computer use: try the next one.
           notes.push(`${app}: ${(e as Error).message.replace(/\s+/g, ' ').slice(0, 200)}`);
           continue;
         }
-        const index = chatInputIndex(tree);
-        if (index === null) {
-          const focused = /The focused UI element is (.*)/.exec(tree)?.[1] ?? 'none';
-          notes.push(`${app}: no chat input, focus ${focused.slice(0, 80)}`);
+        if (found.index === null) {
+          notes.push(`${app}: ${found.note}`);
           break;
         }
         try {
@@ -558,7 +566,7 @@ export class CliAdapter implements OrcaAdapter {
             '--app',
             app,
             '--element-index',
-            String(index),
+            String(found.index),
             '--no-screenshot',
             '--json',
           ]);
@@ -571,6 +579,45 @@ export class CliAdapter implements OrcaAdapter {
     }
     this.diag?.(`chat input not focused: ${notes.join(' | ')}`);
     return false;
+  }
+
+  /**
+   * The chat input's element index. A snapshot reads at most ~1200 elements, and a long chat has more: the input,
+   * below the messages, is then cut off. The parts cut off are read one by one (`--element-index`).
+   */
+  private async findChatInput(app: string): Promise<{ index: number | null; note: string }> {
+    const read = async (extra: string[]) => {
+      const state = JSON.parse(
+        await this.exec([
+          'computer',
+          'get-app-state',
+          '--app',
+          app,
+          ...extra,
+          '--no-screenshot',
+          '--json',
+        ]),
+      ) as { result?: { snapshot?: { treeText?: string } } };
+      return state.result?.snapshot?.treeText ?? '';
+    };
+    const tree = await read(['--query', CHAT_INPUT_QUERY]);
+    const index = chatInputIndex(tree);
+    if (index !== null) return { index, note: '' };
+    const full = await read([]);
+    const cut = cutOffParents(full);
+    // The input comes after the messages: the last parts first.
+    for (const parent of cut.reverse().slice(0, 6)) {
+      const i = chatInputIndex(
+        await read(['--element-index', String(parent), '--query', CHAT_INPUT_QUERY]),
+      );
+      if (i !== null) return { index: i, note: '' };
+    }
+    const focused = /The focused UI element is (.*)/.exec(full)?.[1] ?? 'none';
+    const lines = full.split('\n').length;
+    return {
+      index: null,
+      note: `no chat input (${lines} lines, ${cut.length} cut off), focus ${focused.slice(0, 80)}`,
+    };
   }
 
   /** `worktree set --read`: clears the unread dot in Orca. Local worktrees only. */

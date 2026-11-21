@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { CliAdapter, chatInputIndex, type Exec } from './index.ts';
+import { CliAdapter, chatInputIndex, cutOffParents, type Exec } from './index.ts';
 
 // Orca's agent chats (structured agent sessions) are no terminals: `worktree ps` lists their agent,
 // `terminal.reveal` opens them, `session.tabs.list` says when one is in front (docs/logi-findings.md §8).
@@ -191,4 +191,33 @@ it('finds the chat input in the accessibility tree of Orca computer use, in any 
     ),
   ).toBe(67);
   expect(chatInputIndex(tree('textfeld (settable) Search, Value: a@b/c'))).toBeNull();
+});
+
+it('finds the parts a size-limited accessibility tree cut off', () => {
+  const tree = [
+    '0 standardfenster Orca',
+    '\t1 container Orca',
+    '\t\t2 HTML-Inhalte Orca',
+    '\t\t\t40 container',
+    '\t\t\t\t41 text hello',
+    '\t\t\t\t... 900 more not shown (snapshot limit)',
+    '\t\t\t... 12 more not shown (snapshot limit)',
+  ].join('\n');
+  expect(cutOffParents(tree)).toEqual([40, 2]);
+});
+
+it('looks for the chat input in the cut-off part of a long chat and clicks it', async () => {
+  const calls: string[][] = [];
+  const exec: Exec = async (args) => {
+    calls.push(args);
+    const json = (treeText: string) =>
+      JSON.stringify({ ok: true, result: { snapshot: { treeText } } });
+    if (args[1] === 'click') return json('');
+    if (args.includes('--element-index') && args[1] === 'get-app-state')
+      return json('\t\t\t900 bereich (settable) Frage stellen, @ für Dateiverweise, / für Befehle');
+    if (args.includes('--query')) return json('No elements match "@".');
+    return json('0 Orca\n\t2 HTML-Inhalte Orca\n\t\t... 1300 more not shown (snapshot limit)');
+  };
+  expect(await new CliAdapter(exec).focusChatInput()).toBe(true);
+  expect(calls.at(-1)).toEqual(expect.arrayContaining(['click', '--element-index', '900']));
 });
